@@ -4,5 +4,7 @@ module.exports = {
     ['transform-inline-environment-variables', {
       include: ['SENTRY_DSN'],
     }],
+    // Must stay last. react-navigation-tabs' bottom bar imports Reanimated.
+    'react-native-reanimated/plugin',
   ],
 };
