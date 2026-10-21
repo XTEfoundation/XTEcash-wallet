@@ -1,41 +1,45 @@
-# Android Keystore and Signing
-*.keystore
+# Release signing material and secrets
 *.jks
-.keystore
-android/gradle.properties
-
-# Environment files with secrets
+*.keystore
+!android/app/debug.keystore
+android/keystore.properties
+android/sentry.properties
+android/app/src/main/resources/sentry.properties
 .env
 .env.local
+.env.*
 .android-signing.env
 
-# APK files
+# Packages and logs
 *.apk
 *.aab
 dist/
-
-# Node
 node_modules/
 npm-debug.log
 yarn-error.log
+debug.log
+*.log
 
-# Android
+# Android build output
 android/app/build/
+android/app/.cxx/
+android/app/.externalNativeBuild/
 android/build/
 android/.gradle/
+android/.idea/
 android/local.properties
+android/captures/
 
 # iOS
 ios/build/
 ios/Pods/
+ios/.xcode.env.local
 
-# IDE
+# IDE and OS
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
 Thumbs.db

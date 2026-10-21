@@ -1,58 +1,133 @@
-# XTEcash-wallet - A mobile, native traaittCash wallet
+# XTE Wallet
 
-### Initial Setup
+Mobile wallet for traaitt [XTE], published by the [XTE Foundation](https://github.com/XTEfoundation).
 
-* `cd XTEcash-wallet`
-* `yarn install`
+This tree is a React Native **0.68.7** app (React 18.1). Earlier migration notes that claimed React Native 0.76.1 did not match `package.json` and have been removed. Stay on 0.68.7 until an upgrade is done on its own branch.
 
-### Running
+License: [AGPL-3.0](LICENSE). Existing copyright notices stay in place.
 
-* `node --max-old-space-size=8192 node_modules/react-native/local-cli/cli.js start` (Just need to run this once to start the server, leave it running)
-* `react-native run-android`
+## Requirements
 
-### Logging
+- Node.js 18 (Node 16 also works). Node 22 is not supported by this React Native version.
+- JDK 17. Gradle and Android Gradle Plugin 7.4.2 do not support JDK 21.
+- Android SDK platform 34, build-tools 34.0.0, and NDK `25.1.8937393`.
+- Yarn 1.
 
-`react-native log-android`
-
-### Creating a release
-
-You need to bump the version number in:
-
-* `src/Config.js` - `appVersion`
-* `android/app/build.gradle` - `versionCode` and `versionName`
-* `package.json` - `version` - Not strictly required
-* Update user agent in `MainApplication.java` and `TurtleCoinModule.java`
-
-Then
-`cd android`
-`gradle bundleRelease`
-Optionally
-`gradle installRelease`
-
-or `yarn deploy-android`
-
-### Integrating QR Codes or URIs
-
-XTEcash-wallet supports two kinds of QR codes.
-
-* Standard addresses / integrated addresses - This is simply the address encoded as a QR code.
-
-* traaitt:// URI encoded as a QR code.
-
-Your uri must begin with `traaittplatform://` followed by the address to send to, for example, `traaitt://XTFyavy8CXG8BPEbNeCHFZ1fuDCYCZ3vW5H5LXN4K2M2MHUpTENip9bbavpHvvPwb4NDkBWrNgURAd5DB38FHXWZyoBh4wW`
-
-There are a few optional parameters.
-
-* `name` - This is used to add you to the users address book, and identify you on the 'Confirm' screen. A name can contain spaces, and should be URI encoded.
-* `amount` - This is the amount to send you. This should be specified in atomic units.
-* `paymentid` - If not using integrated address, you can specify a payment ID. Specifying an integrated address and a payment ID is illegal.
-
-An example of a URI containing all of the above parameters:
-
-```
-traaitt://TRFyavy8CXG8BPEbNeCHFZ1fuDCYCZ3vW5H5LXN4K2M2MHUpTENip9bbavpHvvPwb4NDkBWrNgURAd5DB38FHXWZyoBh4wW?amount=10000&name=Starbucks%20Coffee&paymentid=f13adc8ac78eb22ffcee3f82e0e9ffb251dc7dc0600ef599087a89b623ca1402
+```bash
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export ANDROID_HOME=$HOME/Android/Sdk
+yarn install
 ```
 
-This would send `100 XTE` (10000 in atomic units) to the address `XTFyavy8CXG8BPEbNeCHFZ1fuDCYCZ3vW5H5LXN4K2M2MHUpTENip9bbavpHvvPwb4NDkBWrNgURAd5DB38FHXWZyoBh4wW`, using the name `Starbucks Coffee` (Note the URI encoding), and using a payment ID of `f13adc8ac78eb22ffcee3f82e0e9ffb251dc7dc0600ef599087a89b623ca1402`
+`yarn install` runs `patch-package`, `rn-nodeify`, and `jetify`. That is required for the Node polyfills this wallet uses.
 
-You can also just display the URI as a hyperlink. If a user clicks the link, it will open the app, and jump to the confirm screen, just as a QR code would function. (Provided all the fields are given)
+`react-native-svg` is pinned to 12.5.1 and `react-native-qrcode-svg` to 6.1.2. SVG 14 generates Android code that imports React Native classes this 0.68 tree does not have. `react-native-screens` is pinned to 3.18.2 because the tab navigator imports it and 4.x does not build on this Android Gradle Plugin. `patches/react-native-tcp+3.3.2.patch` replaces the removed Gradle `compile` configuration.
+
+## Run on a device or emulator
+
+```bash
+yarn start
+# second terminal
+yarn android
+```
+
+The JS component name is `XTE` (`app.json`). The Android application id is `io.traaitt.osx`.
+
+## Network
+
+Configured in `src/Config.js`. Do not replace these with guessed hosts.
+
+| Setting | Value |
+| --- | --- |
+| Coin | XTE, address prefix `1334` (addresses start with `XT`) |
+| Default daemon | `main.trrxitte.com:443` TLS. This is a daemon, not a cache API. |
+| Node list | `https://raw.githubusercontent.com/TRRXITTE/XTEnetworkserver/refs/heads/main/traaitt.json` |
+
+That node list publishes regional daemons on port `14485` without TLS. The wallet stores a node as `host:port:ssl` or `host:port:plain`. Older `host:port` values are still accepted: port 443 is treated as TLS, every other port as plain TCP.
+
+Payment URIs use `xte://`, for example:
+
+```text
+xte://XT...address?amount=10000&name=Example&paymentid=<64 hex chars>
+```
+
+`amount` is in atomic units (two decimal places, so `10000` is `100.00 XTE`).
+
+## Android release
+
+Versions are aligned at versionCode `1020` / versionName `1.020.0`:
+
+- `package.json` `version`
+- `android/app/build.gradle` `versionCode` and `versionName`
+- `src/Config.js` `appVersion` (`v1.020.0`, the string shown in settings)
+- HTTP user agent `XTE-v` + `versionName`, built from `BuildConfig.VERSION_NAME`
+
+Bump all of those together for the next release.
+
+### Signing
+
+No upload key lives in this repository. `assembleRelease` with no signing config produces an **unsigned** APK (`app-release-unsigned.apk`). Play upload needs a key you generate and keep outside git.
+
+Provide all four values, using any one of these mechanisms:
+
+Environment variables:
+
+```bash
+export XTE_UPLOAD_STORE_FILE=/absolute/path/upload.keystore
+export XTE_UPLOAD_STORE_PASSWORD='...'
+export XTE_UPLOAD_KEY_ALIAS='...'
+export XTE_UPLOAD_KEY_PASSWORD='...'
+```
+
+Gradle properties (not written into `android/gradle.properties`):
+
+```bash
+./gradlew assembleRelease \
+  -PMYAPP_UPLOAD_STORE_FILE=/absolute/path/upload.keystore \
+  -PMYAPP_UPLOAD_STORE_PASSWORD='...' \
+  -PMYAPP_UPLOAD_KEY_ALIAS='...' \
+  -PMYAPP_UPLOAD_KEY_PASSWORD='...'
+```
+
+Or copy `android/keystore.properties.example` to `android/keystore.properties` (gitignored). `storeFile` is resolved relative to `android/app` unless it is absolute.
+
+The debug build uses the standard Android debug keystore checked in at `android/app/debug.keystore`. Its password is the public debug password `android`. It is not an upload key.
+
+```bash
+cd android
+./gradlew assembleRelease
+```
+
+`build-apk.sh` runs the same unsigned release build from the repo root.
+
+Create an upload key (example):
+
+```bash
+keytool -genkeypair -v \
+  -keystore upload.keystore \
+  -alias xte \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+If an upload key was ever committed here, treat it as compromised, generate a new one, and reset it with Play App Signing. Removing the files from the current tree does not erase them from git history.
+
+### Sentry
+
+Release reporting is off unless `SENTRY_DSN` is set in the environment when the JS bundle is built. Babel inlines that variable and leaves reporting disabled when it is unset. Do not commit a DSN. Native symbol upload, if you enable it later, reads `android/sentry.properties` copied from `android/sentry.properties.example`. The auth token in that file is a secret and stays untracked. The Sentry Gradle plugin is not applied.
+
+## Tests
+
+```bash
+yarn test
+```
+
+## What is not in this release
+
+- **iOS.** `ios/TonChan` sources do not match the Xcode project, which still points at `traaittCashMobile` paths. Native crypto is disabled on iOS in `src/Config.js`. Android is the release target.
+- **Play Store listing and a new upload key.** `applicationId` stays `io.traaitt.osx`. Store submission is a separate step after signing.
+- **React Native upgrade, Play targetSdk 35, and navigation v6.** AGP is 7.4.2 with compileSdk/targetSdk 34 so this dependency set still builds. Google Play's current target API is higher; that upgrade has to land with an AGP/namespace pass, not as a drive-by.
+- **The JS library package name** `traaittcash-wallet-backend`. That is the published module this app imports. It is not a user-visible name.
+
+## Reporting issues
+
+https://github.com/XTEfoundation/XTEcash-wallet/issues

@@ -297,8 +297,8 @@ public class XTEModule extends ReactContextBaseJavaModule {
             connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
             connection.setRequestProperty("Accept", "application/json");
 
-            /* XTE-v1.0.1 */
-            connection.setRequestProperty("User-Agent", "XTE-v1.0.1");
+            /* Keep aligned with versionName in android/app/build.gradle */
+            connection.setRequestProperty("User-Agent", "XTE-v" + BuildConfig.VERSION_NAME);
 
             /* Indicate we have a POST body */
             connection.setDoOutput(true);

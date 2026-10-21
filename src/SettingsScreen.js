@@ -23,9 +23,10 @@ import {
 
 import NetInfo from "@react-native-community/netinfo";
 
-import { prettyPrintAmount, Daemon } from 'traaittcash-wallet-backend';
+import { prettyPrintAmount } from 'traaittcash-wallet-backend';
 
 import Config from './Config';
+import { formatListedNode, sameNode } from './NodeAddress';
 import ListItem from './ListItem';
 import List from './ListContainer';
 import Constants from './Constants';
@@ -202,7 +203,7 @@ export class DisableDozeScreen extends React.Component {
     }
 
     async updateDozeStatus() {
-        const dozeDisabled = await NativeModules.TurtleCoin.isDozeDisabled();
+        const dozeDisabled = await NativeModules.XTE.isDozeDisabled();
 
         this.setState({
             dozeDisabled,
@@ -268,7 +269,7 @@ export class DisableDozeScreen extends React.Component {
                                 color: '#3399ff',
                                 fontSize: 16,
                             }}
-                            onPress={() => NativeModules.TurtleCoin.navigateToBatteryOptimizationScreen()}
+                            onPress={() => NativeModules.XTE.navigateToBatteryOptimizationScreen()}
                         >
                             Click here to open the Battery optimization menu.
                         </Text>
@@ -528,6 +529,21 @@ export class SwapCurrencyScreen extends React.Component {
     }
 }
 
+function sortNodes(nodes) {
+    return _.orderBy(nodes || [], ['name'], ['asc']);
+}
+
+function nodeSubtitle(item) {
+    const endpoint = `${item.url}:${item.port}`;
+    const transport = item.ssl ? 'SSL' : 'TCP';
+
+    if (item.fee && item.fee.amount != null && item.availability != null) {
+        return `Node TX fee: ${prettyPrintAmount(item.fee.amount, Config)}, Uptime: ${item.availability}%, ${endpoint} (${transport})`;
+    }
+
+    return `${endpoint} (${transport})`;
+}
+
 export class SwapNodeScreen extends React.Component {
     static navigationOptions = {
         title: 'Available Nodes',
@@ -540,13 +556,7 @@ export class SwapNodeScreen extends React.Component {
         this.swapNode = this.swapNode.bind(this);
 
         this.state = {
-            /* Sort by online nodes, then uptime (highest first), then fee
-            * (lowest first), then name */
-            nodes: _.orderBy(
-                Globals.daemons,
-                ['online',  'availability', 'fee.amount',   'name'],
-                ['desc',    'desc',         'asc',          'asc']
-            ),
+            nodes: sortNodes(Globals.daemons),
 
             selectedNode: Globals.preferences.node,
 
@@ -565,13 +575,7 @@ export class SwapNodeScreen extends React.Component {
 
         this.setState((prevState) => ({
             refreshing: false,
-
-            nodes: _.orderBy(
-                Globals.daemons,
-                ['online',  'availability', 'fee.amount',   'name'],
-                ['desc',    'desc',         'asc',          'asc']
-            ),
-
+            nodes: sortNodes(Globals.daemons),
             forceUpdate: prevState.forceUpdate + 1,
         }));
     }
@@ -579,7 +583,7 @@ export class SwapNodeScreen extends React.Component {
     async swapNode(node) {
         toastPopUp('Swapping node...');
 
-        Globals.preferences.node = node.url + ':' + node.port;
+        Globals.preferences.node = formatListedNode(node);
 
         this.setState((prevState) => ({
             selectedNode: Globals.preferences.node,
@@ -624,7 +628,7 @@ export class SwapNodeScreen extends React.Component {
                                 renderItem={({ item }) => (
                                     <ListItem
                                         title={item.name}
-                                        subtitle={`Node TX fee: ${prettyPrintAmount(item.fee.amount, Config)}, Uptime: ${item.availability}%`}
+                                        subtitle={nodeSubtitle(item)}
                                         leftIcon={
                                             <View style={{
                                                 width: 50,
@@ -636,24 +640,24 @@ export class SwapNodeScreen extends React.Component {
                                             }}>
                                                 <Text style={[Styles.centeredText, { 
                                                     fontSize: 15,
-                                                    color: item.online ? '#33ff33' : '#ff0000',
+                                                    color: item.online === true ? '#33ff33' : item.online === false ? '#ff0000' : this.props.screenProps.theme.slightlyMoreVisibleColour,
                                                 }]}>
-                                                    {item.online ? 'Online' : 'Offline'}
+                                                    {item.online === true ? 'Online' : item.online === false ? 'Offline' : 'Node'}
                                                 </Text>
                                             </View>
                                         }
                                         titleStyle={{
-                                            color: this.state.selectedNode === item.url + ':' + item.port
+                                            color: sameNode(this.state.selectedNode, item)
                                                 ? this.props.screenProps.theme.primaryColour
                                                 : this.props.screenProps.theme.slightlyMoreVisibleColour,
                                         }}
                                         subtitleStyle={{
-                                            color: this.state.selectedNode === item.url + ':' + item.port
+                                            color: sameNode(this.state.selectedNode, item)
                                                 ? this.props.screenProps.theme.primaryColour
                                                 : this.props.screenProps.theme.slightlyMoreVisibleColour,
                                         }}
                                         onPress={async () => {
-                                            if (!item.online) {
+                                            if (item.online === false) {
                                                 Alert.alert(
                                                     'Use offline node?',
                                                     'Are you sure you want to attempt to connect to a node which is reporting as offline?',

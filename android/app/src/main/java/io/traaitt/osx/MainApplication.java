@@ -57,8 +57,8 @@ public class MainApplication extends Application implements ReactApplication {
     super.onCreate();
     upgradeSecurityProvider();
 
-    /* XTE-v1.0.1 */
-    setUserAgent("XTE-v1.0.1");
+    /* Keep aligned with versionName in android/app/build.gradle */
+    setUserAgent("XTE-v" + BuildConfig.VERSION_NAME);
 
     SoLoader.init(this, /* native exopackage */ false);
   }
