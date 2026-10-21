@@ -21,7 +21,7 @@ yarn install
 
 `yarn install` runs `patch-package`, `rn-nodeify`, and `jetify`. That is required for the Node polyfills this wallet uses.
 
-`react-native-svg` is pinned to 12.5.1 and `react-native-qrcode-svg` to 6.1.2. SVG 14 generates Android code that imports React Native classes this 0.68 tree does not have. `react-native-screens` is pinned to 3.18.2 because the tab navigator imports it and 4.x does not build on this Android Gradle Plugin. `patches/react-native-tcp+3.3.2.patch` replaces the removed Gradle `compile` configuration.
+`react-native-svg` is pinned to 12.5.1 and `react-native-qrcode-svg` to 6.1.2. SVG 14 generates Android code that imports React Native classes this 0.68 tree does not have. `react-native-screens` is pinned to 3.18.2 because the tab navigator imports it and 4.x does not build on this Android Gradle Plugin. `patches/react-native-tcp+3.3.2.patch` replaces the removed Gradle `compile` configuration. `patches/react-native-fingerprint-scanner+6.0.0.patch` loads FingerprintIdentify 1.2.6 from JitPack, because `com.wei.android.lib:fingerprintidentify` is no longer on Maven Central.
 
 ## Run on a device or emulator
 

@@ -1,0 +1,233 @@
+diff --git a/node_modules/react-native-fingerprint-scanner/android/build.gradle b/node_modules/react-native-fingerprint-scanner/android/build.gradle
+index eaf3829..c90867b 100644
+--- a/node_modules/react-native-fingerprint-scanner/android/build.gradle
++++ b/node_modules/react-native-fingerprint-scanner/android/build.gradle
+@@ -37,7 +37,8 @@ android {
+ 
+ repositories {
+     mavenCentral()
+-    jcenter()
++    google()
++    maven { url 'https://jitpack.io' }
+ }
+ 
+ dependencies {
+@@ -49,5 +50,6 @@ dependencies {
+     // 1.2.3 is the minimum version compatible with androidx.
+     // See https://github.com/uccmawei/FingerprintIdentify/issues/74
+     // (translation https://translate.google.com/translate?sl=zh-CN&tl=en&u=https://github.com/uccmawei/FingerprintIdentify/issues/74)
+-    implementation "com.wei.android.lib:fingerprintidentify:${safeExtGet("fingerprintidentify", "1.2.6")}"
++    // The com.wei.android.lib coordinate is gone from Maven Central. 1.2.6 is published on JitPack.
++    implementation "com.github.uccmawei:FingerprintIdentify:${safeExtGet("fingerprintidentify", "1.2.6")}"
+ }
+diff --git a/node_modules/react-native-fingerprint-scanner/android/build/generated/source/buildConfig/release/com/hieuvp/fingerprint/BuildConfig.java b/node_modules/react-native-fingerprint-scanner/android/build/generated/source/buildConfig/release/com/hieuvp/fingerprint/BuildConfig.java
+new file mode 100644
+index 0000000..f0f2e0e
+--- /dev/null
++++ b/node_modules/react-native-fingerprint-scanner/android/build/generated/source/buildConfig/release/com/hieuvp/fingerprint/BuildConfig.java
+@@ -0,0 +1,10 @@
++/**
++ * Automatically generated file. DO NOT MODIFY
++ */
++package com.hieuvp.fingerprint;
++
++public final class BuildConfig {
++  public static final boolean DEBUG = false;
++  public static final String LIBRARY_PACKAGE_NAME = "com.hieuvp.fingerprint";
++  public static final String BUILD_TYPE = "release";
++}
+diff --git a/node_modules/react-native-fingerprint-scanner/android/build/intermediates/aapt_friendly_merged_manifests/release/aapt/AndroidManifest.xml b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/aapt_friendly_merged_manifests/release/aapt/AndroidManifest.xml
+new file mode 100644
+index 0000000..1566b73
+--- /dev/null
++++ b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/aapt_friendly_merged_manifests/release/aapt/AndroidManifest.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++    package="com.hieuvp.fingerprint" >
++
++    <uses-sdk android:minSdkVersion="23" />
++
++    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
++    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
++    <uses-permission android:name="com.fingerprints.service.ACCESS_FINGERPRINT_MANAGER" />
++    <uses-permission android:name="com.samsung.android.providers.context.permission.WRITE_USE_APP_FEATURE_SURVEY" />
++
++</manifest>
+\ No newline at end of file
+diff --git a/node_modules/react-native-fingerprint-scanner/android/build/intermediates/aapt_friendly_merged_manifests/release/aapt/output-metadata.json b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/aapt_friendly_merged_manifests/release/aapt/output-metadata.json
+new file mode 100644
+index 0000000..aa4e2b5
+--- /dev/null
++++ b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/aapt_friendly_merged_manifests/release/aapt/output-metadata.json
+@@ -0,0 +1,18 @@
++{
++  "version": 3,
++  "artifactType": {
++    "type": "AAPT_FRIENDLY_MERGED_MANIFESTS",
++    "kind": "Directory"
++  },
++  "applicationId": "com.hieuvp.fingerprint",
++  "variantName": "release",
++  "elements": [
++    {
++      "type": "SINGLE",
++      "filters": [],
++      "attributes": [],
++      "outputFile": "AndroidManifest.xml"
++    }
++  ],
++  "elementType": "File"
++}
+\ No newline at end of file
+diff --git a/node_modules/react-native-fingerprint-scanner/android/build/intermediates/incremental/mergeReleaseJniLibFolders/merger.xml b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/incremental/mergeReleaseJniLibFolders/merger.xml
+new file mode 100644
+index 0000000..b964b28
+--- /dev/null
++++ b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/incremental/mergeReleaseJniLibFolders/merger.xml
+@@ -0,0 +1,2 @@
++<?xml version="1.0" encoding="utf-8"?>
++<merger version="3"><dataSet config="main" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/workspace/node_modules/react-native-fingerprint-scanner/android/src/main/jniLibs"/></dataSet><dataSet config="release" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/workspace/node_modules/react-native-fingerprint-scanner/android/src/release/jniLibs"/></dataSet></merger>
+\ No newline at end of file
+diff --git a/node_modules/react-native-fingerprint-scanner/android/build/intermediates/incremental/release/packageReleaseResources/compile-file-map.properties b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/incremental/release/packageReleaseResources/compile-file-map.properties
+new file mode 100644
+index 0000000..396fcb0
+--- /dev/null
++++ b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/incremental/release/packageReleaseResources/compile-file-map.properties
+@@ -0,0 +1 @@
++#Wed Oct 21 10:07:18 UTC 2026
+diff --git a/node_modules/react-native-fingerprint-scanner/android/build/intermediates/incremental/release/packageReleaseResources/merger.xml b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/incremental/release/packageReleaseResources/merger.xml
+new file mode 100644
+index 0000000..03bfa2e
+--- /dev/null
++++ b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/incremental/release/packageReleaseResources/merger.xml
+@@ -0,0 +1,2 @@
++<?xml version="1.0" encoding="utf-8"?>
++<merger version="3"><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/workspace/node_modules/react-native-fingerprint-scanner/android/src/main/res"/><source path="/workspace/node_modules/react-native-fingerprint-scanner/android/build/generated/res/rs/release"/><source path="/workspace/node_modules/react-native-fingerprint-scanner/android/build/generated/res/resValues/release"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main" generated-set="main$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/workspace/node_modules/react-native-fingerprint-scanner/android/src/main/res"/><source path="/workspace/node_modules/react-native-fingerprint-scanner/android/build/generated/res/rs/release"/><source path="/workspace/node_modules/react-native-fingerprint-scanner/android/build/generated/res/resValues/release"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="release$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/workspace/node_modules/react-native-fingerprint-scanner/android/src/release/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="release" generated-set="release$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/workspace/node_modules/react-native-fingerprint-scanner/android/src/release/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"/><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated" generated-set="generated$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"/><mergedItems/></merger>
+\ No newline at end of file
+diff --git a/node_modules/react-native-fingerprint-scanner/android/build/intermediates/local_only_symbol_list/release/R-def.txt b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/local_only_symbol_list/release/R-def.txt
+new file mode 100644
+index 0000000..78ac5b8
+--- /dev/null
++++ b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/local_only_symbol_list/release/R-def.txt
+@@ -0,0 +1,2 @@
++R_DEF: Internal format may change without notice
++local
+diff --git a/node_modules/react-native-fingerprint-scanner/android/build/intermediates/manifest_merge_blame_file/release/manifest-merger-blame-release-report.txt b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/manifest_merge_blame_file/release/manifest-merger-blame-release-report.txt
+new file mode 100644
+index 0000000..f5205ce
+--- /dev/null
++++ b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/manifest_merge_blame_file/release/manifest-merger-blame-release-report.txt
+@@ -0,0 +1,21 @@
++1<?xml version="1.0" encoding="utf-8"?>
++2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++3    package="com.hieuvp.fingerprint" >
++4
++5    <uses-sdk android:minSdkVersion="23" />
++5-->/workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml
++6
++7    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
++7-->/workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:3:5-74
++7-->/workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:3:22-71
++8    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
++8-->/workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:4:5-71
++8-->/workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:4:22-69
++9    <uses-permission android:name="com.fingerprints.service.ACCESS_FINGERPRINT_MANAGER" />
++9-->/workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:5:5-91
++9-->/workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:5:22-88
++10    <uses-permission android:name="com.samsung.android.providers.context.permission.WRITE_USE_APP_FEATURE_SURVEY" />
++10-->/workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:6:5-7:104
++10-->/workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:7:9-101
++11
++12</manifest>
+diff --git a/node_modules/react-native-fingerprint-scanner/android/build/intermediates/merged_manifest/release/AndroidManifest.xml b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/merged_manifest/release/AndroidManifest.xml
+new file mode 100644
+index 0000000..1566b73
+--- /dev/null
++++ b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/merged_manifest/release/AndroidManifest.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++    package="com.hieuvp.fingerprint" >
++
++    <uses-sdk android:minSdkVersion="23" />
++
++    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
++    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
++    <uses-permission android:name="com.fingerprints.service.ACCESS_FINGERPRINT_MANAGER" />
++    <uses-permission android:name="com.samsung.android.providers.context.permission.WRITE_USE_APP_FEATURE_SURVEY" />
++
++</manifest>
+\ No newline at end of file
+diff --git a/node_modules/react-native-fingerprint-scanner/android/build/intermediates/packaged_manifests/release/output-metadata.json b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/packaged_manifests/release/output-metadata.json
+new file mode 100644
+index 0000000..f2268ed
+--- /dev/null
++++ b/node_modules/react-native-fingerprint-scanner/android/build/intermediates/packaged_manifests/release/output-metadata.json
+@@ -0,0 +1,18 @@
++{
++  "version": 3,
++  "artifactType": {
++    "type": "PACKAGED_MANIFESTS",
++    "kind": "Directory"
++  },
++  "applicationId": "com.hieuvp.fingerprint",
++  "variantName": "release",
++  "elements": [
++    {
++      "type": "SINGLE",
++      "filters": [],
++      "attributes": [],
++      "outputFile": "../../merged_manifest/release/AndroidManifest.xml"
++    }
++  ],
++  "elementType": "File"
++}
+\ No newline at end of file
+diff --git a/node_modules/react-native-fingerprint-scanner/android/build/outputs/logs/manifest-merger-release-report.txt b/node_modules/react-native-fingerprint-scanner/android/build/outputs/logs/manifest-merger-release-report.txt
+new file mode 100644
+index 0000000..a9d49a9
+--- /dev/null
++++ b/node_modules/react-native-fingerprint-scanner/android/build/outputs/logs/manifest-merger-release-report.txt
+@@ -0,0 +1,41 @@
++-- Merging decision tree log ---
++manifest
++ADDED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:1:1-8:12
++INJECTED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:1:1-8:12
++INJECTED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:1:1-8:12
++	package
++		ADDED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:2:5-37
++		INJECTED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml
++		INJECTED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml
++	xmlns:android
++		ADDED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:1:11-69
++uses-permission#android.permission.USE_FINGERPRINT
++ADDED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:3:5-74
++	android:name
++		ADDED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:3:22-71
++uses-permission#android.permission.USE_BIOMETRIC
++ADDED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:4:5-71
++	android:name
++		ADDED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:4:22-69
++uses-permission#com.fingerprints.service.ACCESS_FINGERPRINT_MANAGER
++ADDED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:5:5-91
++	android:name
++		ADDED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:5:22-88
++uses-permission#com.samsung.android.providers.context.permission.WRITE_USE_APP_FEATURE_SURVEY
++ADDED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:6:5-7:104
++	android:name
++		ADDED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml:7:9-101
++uses-sdk
++INJECTED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
++INJECTED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml
++INJECTED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml
++INJECTED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml
++INJECTED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml
++	android:targetSdkVersion
++		INJECTED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml
++		ADDED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml
++		INJECTED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml
++	android:minSdkVersion
++		INJECTED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml
++		ADDED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml
++		INJECTED from /workspace/node_modules/react-native-fingerprint-scanner/android/src/main/AndroidManifest.xml
