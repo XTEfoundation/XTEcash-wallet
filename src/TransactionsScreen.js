@@ -333,8 +333,7 @@ class TransactionList extends React.Component {
 
     getIconColour(transaction) {
         if (transaction.totalAmount() >= 0) {
-            /* Intentionally using the TurtleCoin green here, instead of the
-               theme colour - we want green/red, not to change based on theme */
+            /* Incoming transfers stay green, outgoing stay red, independent of theme */
             return '#40C18E';
         }
 

@@ -2,6 +2,37 @@ apply plugin: "com.android.application"
 
 import com.android.build.OutputFile
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+def releaseSigningValue = { String envName, String gradleName, String fileName ->
+    def fromEnv = System.getenv(envName)
+    if (fromEnv?.trim()) {
+        return fromEnv.trim()
+    }
+    if (project.hasProperty(gradleName)) {
+        def fromGradle = project.property(gradleName)?.toString()?.trim()
+        if (fromGradle) {
+            return fromGradle
+        }
+    }
+    def fromFile = keystoreProperties.getProperty(fileName)?.trim()
+    if (fromFile) {
+        return fromFile
+    }
+    return null
+}
+
+// Env vars, -P gradle properties, or android/keystore.properties (gitignored).
+def releaseStoreFile = releaseSigningValue("XTE_UPLOAD_STORE_FILE", "MYAPP_UPLOAD_STORE_FILE", "storeFile")
+def releaseStorePassword = releaseSigningValue("XTE_UPLOAD_STORE_PASSWORD", "MYAPP_UPLOAD_STORE_PASSWORD", "storePassword")
+def releaseKeyAlias = releaseSigningValue("XTE_UPLOAD_KEY_ALIAS", "MYAPP_UPLOAD_KEY_ALIAS", "keyAlias")
+def releaseKeyPassword = releaseSigningValue("XTE_UPLOAD_KEY_PASSWORD", "MYAPP_UPLOAD_KEY_PASSWORD", "keyPassword")
+def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
 /**
  * The react.gradle file registers a task for each build variant (e.g. bundleDebugJsAndAssets
  * and bundleReleaseJsAndAssets).
@@ -143,11 +174,9 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1020
-        versionName "v1.020.0"
+        versionName "1.020.0"
         ndk {
             abiFilters "armeabi-v7a", "x86", "arm64-v8a", "x86_64"
-            moduleName "xte_jni"
-            stl "stlport_static"
         }
         missingDimensionStrategy 'react-native-camera', 'general'
         multiDexEnabled true
@@ -158,19 +187,20 @@ android {
         }
     }
     signingConfigs {
-        release {
-            if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
-                storeFile file(MYAPP_UPLOAD_STORE_FILE)
-                storePassword MYAPP_UPLOAD_STORE_PASSWORD
-                keyAlias MYAPP_UPLOAD_KEY_ALIAS
-                keyPassword MYAPP_UPLOAD_KEY_PASSWORD
-            }
-        }
         debug {
+            // Public Android debug keystore. Password is the well-known debug value.
             storeFile file('debug.keystore')
             storePassword 'android'
             keyAlias 'androiddebugkey'
             keyPassword 'android'
+        }
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
         }
     }
     splits {
@@ -186,10 +216,11 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://facebook.github.io/react-native/docs/signed-apk-android.
-            signingConfig signingConfigs.release
-            minifyEnabled false
+            // Unsigned when no upload key is configured. See README for signing.
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
