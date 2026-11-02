@@ -1,0 +1,16 @@
+diff --git a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStack.kt b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStack.kt
+index 0000000..1111111 100644
+--- a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStack.kt
++++ b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStack.kt
+@@ -297,7 +297,10 @@
+     }
+ 
+     private fun performDraw(op: DrawingOp) {
+-        super.drawChild(op.canvas, op.child, op.drawingTime)
++        // API 34 marks the Canvas argument non-null. DrawingOp stores a nullable canvas.
++        val canvas = op.canvas ?: return
++        val child = op.child ?: return
++        super.drawChild(canvas, child, op.drawingTime)
+     }
+ 
+     private fun obtainDrawingOp(): DrawingOp =

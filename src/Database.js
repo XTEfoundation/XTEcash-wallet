@@ -6,7 +6,7 @@ import SQLite from 'react-native-sqlite-storage';
 
 import * as _ from 'lodash';
 
-import { AsyncStorage } from 'react-native';
+import AsyncStorage from '@react-native-community/async-storage';
 
 import Config from './Config';
 import Constants from './Constants';
@@ -246,7 +246,7 @@ async function createTables(DB) {
                 ?
             )`,
             [
-                Config.defaultDaemon.getConnectionString(),
+                Config.defaultNode,
             ],
         );
 
@@ -262,7 +262,7 @@ async function createTables(DB) {
                 WHERE
                     id = 0`,
                 [
-                    Config.defaultDaemon.getConnectionString(),
+                    Config.defaultNode,
                 ],
             );
         } else if (dbVersion === 1) {
@@ -274,7 +274,7 @@ async function createTables(DB) {
                 WHERE
                     id = 0`,
                 [
-                    Config.defaultDaemon.getConnectionString(),
+                    Config.defaultNode,
                 ],
             );
         }

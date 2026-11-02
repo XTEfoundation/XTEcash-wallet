@@ -4,7 +4,9 @@
 
 import BackgroundFetch from 'react-native-background-fetch';
 
-import { AppState, Platform, PushNotificationIOS } from 'react-native';
+import { AppState, Platform } from 'react-native';
+
+import PushNotificationIOS from '@react-native-community/push-notification-ios';
 
 import { WalletBackend, LogLevel } from 'traaittcash-wallet-backend';
 
@@ -165,11 +167,8 @@ async function fromHeadlessJSInit() {
 
     Globals.wallet.setLogLevel(LogLevel.DEBUG);
 
-    /* Use our native C++ func to process blocks, provided we're on android */
-    /* TODO: iOS support */
-    if (Platform.OS === 'android') {
-        Globals.wallet.setBlockOutputProcessFunc(processBlockOutputs);
-    }
+    /* Use our native C++ func to process blocks (android + iOS XTE module) */
+    Globals.wallet.setBlockOutputProcessFunc(processBlockOutputs);
 
     PushNotification.configure({
         onNotification: (notification) => {

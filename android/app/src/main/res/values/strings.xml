@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">XTEwallet</string>
+    <string name="app_name">XTE</string>
+    <string name="notification_channel_name">XTE</string>
+    <string name="notification_channel_description">XTE wallet notifications</string>
 </resources>

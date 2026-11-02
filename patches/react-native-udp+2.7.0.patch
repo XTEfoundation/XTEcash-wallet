@@ -1,0 +1,26 @@
+diff --git a/node_modules/react-native-udp/android/src/main/java/com/tradle/react/UdpSocketClient.java b/node_modules/react-native-udp/android/src/main/java/com/tradle/react/UdpSocketClient.java
+index 0000000..1111111 100644
+--- a/node_modules/react-native-udp/android/src/main/java/com/tradle/react/UdpSocketClient.java
++++ b/node_modules/react-native-udp/android/src/main/java/com/tradle/react/UdpSocketClient.java
+@@ -8,7 +8,7 @@
+ package com.tradle.react;
+ 
+ import android.os.AsyncTask;
+-import android.support.annotation.Nullable;
++import androidx.annotation.Nullable;
+ import android.util.Base64;
+ import android.util.Pair;
+ 
+diff --git a/node_modules/react-native-udp/android/src/main/java/com/tradle/react/UdpSockets.java b/node_modules/react-native-udp/android/src/main/java/com/tradle/react/UdpSockets.java
+index 0000000..1111111 100644
+--- a/node_modules/react-native-udp/android/src/main/java/com/tradle/react/UdpSockets.java
++++ b/node_modules/react-native-udp/android/src/main/java/com/tradle/react/UdpSockets.java
+@@ -9,7 +9,7 @@
+ 
+ import android.content.Context;
+ import android.net.wifi.WifiManager;
+-import android.support.annotation.Nullable;
++import androidx.annotation.Nullable;
+ import android.util.SparseArray;
+ import android.os.AsyncTask;
+ 

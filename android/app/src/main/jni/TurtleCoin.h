@@ -1,4 +1,5 @@
 #include "Types.h"
+#include "BlockOutputs.h"
 
 #include <unordered_map>
 
@@ -35,20 +36,6 @@ void byteArrayToHexString(const uint8_t *input, char *output, size_t inputLen);
 int char2int(char input);
 
 void hexStringToByteArray(const char* input, uint8_t* output, size_t outputLen);
-
-std::vector<std::tuple<Crypto::PublicKey, TransactionInput>> processBlockOutputs(
-    const WalletBlockInfo &block,
-    const Crypto::SecretKey &privateViewKey,
-    const std::unordered_map<Crypto::PublicKey, Crypto::SecretKey> &spendKeys,
-    const bool isViewWallet,
-    const bool processCoinbaseTransactions);
-
-void processTransactionOutputs(
-    const RawTransaction &tx,
-    const Crypto::SecretKey &privateViewKey,
-    const std::unordered_map<Crypto::PublicKey, Crypto::SecretKey> &spendKeys,
-    const bool isViewWallet,
-    std::vector<std::tuple<Crypto::PublicKey, TransactionInput>> &inputs);
 
 template<typename T>
 T makeNative32ByteKey(JNIEnv *env, jstring jKey)

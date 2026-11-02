@@ -15,11 +15,13 @@ import PushNotification from 'react-native-push-notification';
 import { NavigationActions, NavigationEvents } from 'react-navigation';
 
 import {
-    Text, View, Image, TouchableOpacity, PushNotificationIOS,
+    Text, View, Image, TouchableOpacity,
     AppState, Platform, Linking, ScrollView, RefreshControl, Dimensions,
 } from 'react-native';
 
 import NetInfo from "@react-native-community/netinfo";
+
+import PushNotificationIOS from '@react-native-community/push-notification-ios';
 
 import { prettyPrintAmount, LogLevel } from 'traaittcash-wallet-backend';
 
@@ -59,11 +61,8 @@ async function init(navigation) {
         Globals.backgroundSaveTimer = setInterval(backgroundSave, Config.walletSaveFrequency);
     }
 
-    /* Use our native C++ func to process blocks, provided we're on android */
-    /* TODO: iOS support */
-    if (Platform.OS === 'android') {
-        Globals.wallet.setBlockOutputProcessFunc(processBlockOutputs);
-    }
+    /* Use our native C++ func to process blocks (android + iOS XTE module) */
+    Globals.wallet.setBlockOutputProcessFunc(processBlockOutputs);
 
     initGlobals();
 

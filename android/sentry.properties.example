@@ -1,0 +1,6 @@
+defaults.url=https://sentry.io
+defaults.org=
+defaults.project=
+# auth.token=
+# Do not commit a token. Copy this file to android/sentry.properties locally
+# only if you enable native symbol upload.

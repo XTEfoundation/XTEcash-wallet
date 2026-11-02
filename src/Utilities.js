@@ -128,7 +128,7 @@ export function handleURI(data, navigation) {
 export function parseURI(qrData) {
     /* It's a URI, try and get the data from it */
     if (qrData.startsWith(Config.uriPrefix)) {
-        /* Remove the turtlecoin:// prefix */
+        /* Remove the xte:// prefix */
         let data = qrData.replace(Config.uriPrefix, '');
         let index = data.indexOf('?');
 

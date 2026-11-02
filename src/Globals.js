@@ -8,11 +8,12 @@ import * as _ from 'lodash';
 
 import { Daemon } from 'traaittcash-wallet-backend';
 
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import NetInfo from "@react-native-community/netinfo";
 
 import Config from './Config';
+import { parseNode } from './NodeAddress';
 
 import { Logger } from './Logger';
 import { getCoinPriceFromAPI } from './Currency';
@@ -44,7 +45,7 @@ class globals {
             authConfirmation: false,
             autoOptimize: true,
             authenticationMethod: 'hardware-auth',
-            node: Config.defaultDaemon.getConnectionString(),
+            node: Config.defaultNode,
         };
 
         /* People in our address book */
@@ -91,9 +92,12 @@ class globals {
     }
 
     getDaemon() {
-        const [ host, port ] = this.preferences.node.split(':');
+        const parsed = parseNode(this.preferences.node);
+        const fallback = parseNode(Config.defaultNode);
+        const node = parsed.host && Number.isFinite(parsed.port) ? parsed : fallback;
 
-        const daemon = new Daemon(host, Number(port));
+        /* isCacheApi is the third argument and must be false for a daemon. */
+        const daemon = new Daemon(node.host, node.port, false, node.ssl);
 
         if (Platform.OS === 'android') {
             /* Override with our native makePostRequest implementation which can

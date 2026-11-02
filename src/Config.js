@@ -2,7 +2,6 @@
 //
 // Please see the included LICENSE file for more information.
 
-import { Platform } from 'react-native';
 
 import { MixinLimit, MixinLimits, Daemon } from 'traaittcash-wallet-backend';
 
@@ -117,32 +116,32 @@ const Config = new function() {
     /**
      * Use our native func instead of JS slowness
      */
-    this.derivePublicKey = Platform.OS === 'ios' ? undefined : derivePublicKey;
+    this.derivePublicKey = derivePublicKey;
 
     /**
      * Use our native func instead of JS slowness
      */
-    this.generateKeyDerivation = Platform.OS === 'ios' ? undefined : generateKeyDerivation;
+    this.generateKeyDerivation = generateKeyDerivation;
 
     /**
      * Use our native func instead of JS slowness
      */
-    this.generateRingSignatures = Platform.OS === 'ios' ? undefined : generateRingSignatures;
+    this.generateRingSignatures = generateRingSignatures;
 
     /**
      * Use our native func instead of JS slowness
      */
-    this.deriveSecretKey = Platform.OS === 'ios' ? undefined : deriveSecretKey;
+    this.deriveSecretKey = deriveSecretKey;
 
     /**
      * Use our native func instead of JS slowness
      */
-    this.generateKeyImage = Platform.OS === 'ios' ? undefined : generateKeyImage;
+    this.generateKeyImage = generateKeyImage;
 
     /**
      * Use our native func instead of JS slowness
      */
-    this.checkRingSignatures = Platform.OS === 'ios' ? undefined: checkRingSignature;
+    this.checkRingSignatures = checkRingSignature;
 
     /**
      * Memory to use for storing downloaded blocks - 3MB
@@ -180,38 +179,28 @@ const Config = new function() {
     this.priceApiLink = 'https://api.coingecko.com/api/v3/simple/price';
 
     /**
-     * Default daemon to use. Can either be a BlockchainCacheApi(baseURL, SSL),
-     * or a ConventionalDaemon(url, port). XTE uses P2P port 14451, RPC port 14485
-     * Main node uses SSL on port 443
+     * Default daemon. Daemon's constructor is (host, port, isCacheApi, ssl).
+     * The third argument must stay false: true would mark this as a cache API.
+     * The public node list is fetched from nodeListURL; do not hardcode nodes here.
      */
-    this.defaultDaemon = new Daemon('main.trrxitte.com', 443, true);
+    this.defaultDaemon = new Daemon('main.trrxitte.com', 443, false, true);
 
     /**
-     * List of available XTE network nodes
+     * Persisted form of defaultDaemon. See NodeAddress.js.
      */
-    this.nodeList = [
-        { name: 'Main Node (SSL)', host: 'main.trrxitte.com', port: 443, ssl: true },
-        { name: 'US East', host: 'us-east.trrxitte.com', port: 14485, ssl: false },
-        { name: 'US West', host: 'us-west.trrxitte.com', port: 14485, ssl: false },
-        { name: 'Europe West', host: 'eu-west.trrxitte.com', port: 14485, ssl: false },
-        { name: 'Europe West (Alt)', host: 'eu.trrxitte.com', port: 14485, ssl: false },
-        { name: 'Asia East', host: 'asia-east.trrxitte.com', port: 14485, ssl: false },
-        { name: 'Asia Northeast', host: 'asia-northeast.trrxitte.com', port: 14485, ssl: false },
-        { name: 'Asia Southeast', host: 'asia-southeast.trrxitte.com', port: 14485, ssl: false },
-        { name: 'South America East', host: 'southamerica-east.trrxitte.com', port: 14485, ssl: false },
-    ];
+    this.defaultNode = 'main.trrxitte.com:443:ssl';
 
     /**
      * A link to where a bug can be reported for your wallet. Please update
      * this if you are forking, so we don't get reported bugs for your wallet...
      *
      */
-    this.repoLink = 'https://github.com/TRRXITTE/XTEcash-wallet';
+    this.repoLink = 'https://github.com/XTEfoundation/XTEcash-wallet';
 
     /**
      * This only controls the name in the settings screen.
      */
-    this.appName = 'XTE Wallet';
+    this.appName = 'XTE';
 
     /**
      * Slogan phrase during wallet CreateScreen
@@ -221,7 +210,7 @@ const Config = new function() {
     /**
      * Displayed in the settings screen
      */
-    this.appVersion = 'v1.0.1';
+    this.appVersion = 'v1.020.1';
 
     /**
      * Base URL for us to chuck a hash on the end, and find a transaction

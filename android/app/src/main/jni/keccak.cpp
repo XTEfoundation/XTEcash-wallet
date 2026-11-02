@@ -5,6 +5,8 @@
 //
 // Please see the included LICENSE file for more information.
 
+#include <cstring>
+
 #include "keccak.h"
 #include "hash.h"
 

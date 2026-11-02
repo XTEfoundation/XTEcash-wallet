@@ -1,56 +1,96 @@
-platform :ios, '9.0'
+# XTE wallet - iOS dependencies (React Native 0.68, old architecture, JSC).
+#
+#   yarn install --frozen-lockfile
+#   cd ios && pod install
+#
+# Then open ios/XTE.xcworkspace (not the .xcodeproj).
+
+require_relative '../node_modules/react-native/scripts/react_native_pods'
 require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
 
-target 'traaittCashMobile' do
-  # Pods for traaittCashMobile
-  pod 'React', :path => '../node_modules/react-native/'
-  pod 'React-Core', :path => '../node_modules/react-native/React'
-  pod 'React-DevSupport', :path => '../node_modules/react-native/React'
-  pod 'React-fishhook', :path => '../node_modules/react-native/Libraries/fishhook'
-  pod 'React-RCTActionSheet', :path => '../node_modules/react-native/Libraries/ActionSheetIOS'
-  pod 'React-RCTAnimation', :path => '../node_modules/react-native/Libraries/NativeAnimation'
-  pod 'React-RCTBlob', :path => '../node_modules/react-native/Libraries/Blob'
-  pod 'React-RCTImage', :path => '../node_modules/react-native/Libraries/Image'
-  pod 'React-RCTLinking', :path => '../node_modules/react-native/Libraries/LinkingIOS'
-  pod 'React-RCTNetwork', :path => '../node_modules/react-native/Libraries/Network'
-  pod 'React-RCTSettings', :path => '../node_modules/react-native/Libraries/Settings'
-  pod 'React-RCTText', :path => '../node_modules/react-native/Libraries/Text'
-  pod 'React-RCTVibration', :path => '../node_modules/react-native/Libraries/Vibration'
-  pod 'React-RCTWebSocket', :path => '../node_modules/react-native/Libraries/WebSocket'
+IOS_DEPLOYMENT_TARGET = '13.0'
 
-  pod 'React-cxxreact', :path => '../node_modules/react-native/ReactCommon/cxxreact'
-  pod 'React-jsi', :path => '../node_modules/react-native/ReactCommon/jsi'
-  pod 'React-jsiexecutor', :path => '../node_modules/react-native/ReactCommon/jsiexecutor'
-  pod 'React-jsinspector', :path => '../node_modules/react-native/ReactCommon/jsinspector'
-  pod 'yoga', :path => '../node_modules/react-native/ReactCommon/yoga'
+platform :ios, IOS_DEPLOYMENT_TARGET
+install! 'cocoapods', :deterministic_uuids => false
 
-  pod 'DoubleConversion', :podspec => '../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec'
-  pod 'glog', :podspec => '../node_modules/react-native/third-party-podspecs/glog.podspec'
-  pod 'Folly', :podspec => '../node_modules/react-native/third-party-podspecs/Folly.podspec'
+target 'XTE' do
+  config = use_native_modules!
 
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => false,
+    :fabric_enabled => false,
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
 
+  # react-native-permissions 3.x needs one pod per permission handler.
+  # Camera: QR code scanning, FaceID: biometric unlock.
+  permissions_path = '../node_modules/react-native-permissions/ios'
+  pod 'Permission-Camera', :path => "#{permissions_path}/Camera"
+  pod 'Permission-FaceID', :path => "#{permissions_path}/FaceID"
 
-
-
-  pod 'RNBackgroundFetch', :path => '../node_modules/react-native-background-fetch'
-
-
-  pod 'ReactNativePermissions', :path => '../node_modules/react-native-permissions'
-
-  target 'traaittCashMobileTests' do
-    inherit! :search_paths
-    # Pods for testing
+  target 'XTETests' do
+    inherit! :complete
   end
 
-  use_native_modules!
-end
+  # Flipper is intentionally not enabled (debug-only tooling that no longer
+  # builds with current Xcode for RN 0.68).
 
-target 'traaittCashMobile-tvOS' do
-  # Pods for traaittCashMobile-tvOS
+  post_install do |installer|
+    react_native_post_install(installer)
+    __apply_Xcode_12_5_M1_post_install_workaround(installer)
 
-  target 'traaittCashMobile-tvOSTests' do
-    inherit! :search_paths
-    # Pods for testing
+    # sentry-cocoa 7.x (pulled in by @sentry/react-native 4.x) does not
+    # compile with the libc++ in Xcode 15+:
+    #  - std::vector<const T> is rejected (upstream sentry-cocoa 8 dropped
+    #    the const),
+    #  - std::set_terminate needs <exception>, no longer included
+    #    transitively,
+    #  - Xcode 26 wants <sys/_types/_ucontext64.h> before ucontext64_t.
+    sentry_dir = installer.sandbox.pod_dir('Sentry').to_s
+    {
+      'Sources/Sentry/include/SentryThreadMetadataCache.hpp' => [
+        ['std::vector<const ThreadHandleMetadataPair>', 'std::vector<ThreadHandleMetadataPair>'],
+        ['std::vector<const QueueMetadata>', 'std::vector<QueueMetadata>'],
+      ],
+      'Sources/SentryCrash/Recording/Monitors/SentryCrashMonitor_CPPException.cpp' => [
+        ["#include <typeinfo>\n", "#include <typeinfo>\n#include <exception>\n"],
+      ],
+      # Xcode 26 (explicit modules): ucontext64_t needs its own header on arm64.
+      'Sources/SentryCrash/Recording/Tools/SentryCrashMachineContext.c' => [
+        ["#include <mach/mach.h>\n", "#include <mach/mach.h>\n#ifdef __arm64__\n#include <sys/_types/_ucontext64.h>\n#endif\n"],
+      ],
+    }.each do |relative_path, replacements|
+      path = File.join(sentry_dir, relative_path)
+      next unless File.exist?(path)
+      contents = File.read(path)
+      patched = replacements.reduce(contents) do |text, (from, to)|
+        text.include?(to) ? text : text.gsub(from, to)
+      end
+      if patched != contents
+        File.chmod(0644, path)
+        File.write(path, patched)
+      end
+    end
+
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |build_config|
+        # Old pods declare iOS 7/8/9, which current Xcode can no longer
+        # build (missing libarclite) - raise everything to our target.
+        build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = IOS_DEPLOYMENT_TARGET
+
+        # libc++ in Xcode 15+ removed std::unary_function, which boost and
+        # Folly (as shipped with RN 0.68) still use.
+        defs = build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
+        defs = [defs] unless defs.is_a?(Array)
+        defs << '_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION' unless defs.include?('_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION')
+        build_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
+
+        # react-native-background-fetch ships TSBackgroundFetch.framework
+        # without an arm64 simulator slice, so simulator builds are x86_64.
+        build_config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+      end
+    end
   end
-
 end
