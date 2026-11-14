@@ -15,7 +15,7 @@ import PushNotification from 'react-native-push-notification';
 import { NavigationActions, NavigationEvents } from 'react-navigation';
 
 import {
-    Text, View, Image, TouchableOpacity,
+    Text, View, Image, TouchableOpacity, Button,
     AppState, Platform, Linking, ScrollView, RefreshControl, Dimensions,
 } from 'react-native';
 
@@ -39,7 +39,7 @@ import {
 } from './BackgroundSync';
 import {
     publishWidgetData, updateDynamicShortcuts, showPaymentNotification, trackOutgoing, updateOutgoing,
-    isWideLayout,
+    isWideLayout, consumePendingRoute, advertiseReceive, shareAddress,
 } from './Platform';
 import { CopyButton, OneLineText } from './SharedComponents';
 import { coinsToFiat, getCoinPriceFromAPI } from './Currency';
@@ -110,6 +110,15 @@ async function init(navigation) {
     if (url) {
         handleURI(url, navigation);
     }
+
+    /* iOS: quick action / notification action / Handoff that cold-started the app */
+    const pending = await consumePendingRoute();
+
+    if (pending && pending !== url) {
+        handleURI(pending, navigation);
+    }
+
+    advertiseReceive(Globals.wallet.getPrimaryAddress());
 }
 
 function handleNotification(notification) {
@@ -219,8 +228,10 @@ export class MainScreen extends React.Component {
         this.setState({ window });
     }
 
-    handleURI(url) {
-        handleURI(url, this.props.navigation);
+    handleURI(event) {
+        /* Delivered live: drop the copy kept for a cold start. */
+        consumePendingRoute();
+        handleURI(event, this.props.navigation);
     }
 
     async resumeSyncing() {
@@ -407,6 +418,14 @@ class AddressComponent extends React.Component {
                     name='Address'
                     {...this.props}
                 />
+
+                <View style={{ marginTop: 5 }}>
+                    <Button
+                        title='Share'
+                        onPress={() => shareAddress(this.state.address)}
+                        color={this.props.screenProps.theme.buttonThemeColour}
+                    />
+                </View>
             </View>
         );
     }

@@ -1026,31 +1026,37 @@ export class SettingsScreen extends React.Component {
                                 checkbox: true,
                                 checked: this.state.backgroundPrefs.restoreService,
                             }] : []),
+                            {
+                                title: 'Protect Address Book',
+                                description: Platform.OS === 'ios'
+                                    ? 'Face ID / Touch ID or passcode to open the address book'
+                                    : 'Fingerprint, face or screen lock to open the address book',
+                                icon: { iconName: 'contacts', IconType: MaterialCommunityIcons },
+                                onClick: () => this.togglePlatformPref('protectAddressBook', 'Address book protection'),
+                                checkbox: true,
+                                checked: this.state.platformPrefs.protectAddressBook,
+                            },
+                            {
+                                title: 'Biometric Send Confirmation',
+                                description: Platform.OS === 'ios'
+                                    ? 'Face ID / Touch ID or passcode before a transaction is sent'
+                                    : 'Fingerprint, face or screen lock before a transaction is sent',
+                                icon: { iconName: 'fingerprint', IconType: MaterialCommunityIcons },
+                                onClick: () => this.togglePlatformPref('biometricSend', 'Biometric send confirmation'),
+                                checkbox: true,
+                                checked: this.state.platformPrefs.biometricSend,
+                            },
+                            {
+                                title: 'Hide Balance In Widgets',
+                                description: Platform.OS === 'ios'
+                                    ? 'Widgets, Lock Screen and Apple Watch show no amounts'
+                                    : 'Widgets, Quick Settings tile and watch show no amounts',
+                                icon: { iconName: 'eye-off', IconType: MaterialCommunityIcons },
+                                onClick: () => this.togglePlatformPref('hideBalanceInWidgets', 'Hidden widget balance'),
+                                checkbox: true,
+                                checked: this.state.platformPrefs.hideBalanceInWidgets,
+                            },
                             ...(Platform.OS === 'android' ? [
-                                {
-                                    title: 'Protect Address Book',
-                                    description: 'Fingerprint, face or screen lock to open the address book',
-                                    icon: { iconName: 'contacts', IconType: MaterialCommunityIcons },
-                                    onClick: () => this.togglePlatformPref('protectAddressBook', 'Address book protection'),
-                                    checkbox: true,
-                                    checked: this.state.platformPrefs.protectAddressBook,
-                                },
-                                {
-                                    title: 'Biometric Send Confirmation',
-                                    description: 'Fingerprint, face or screen lock before a transaction is sent',
-                                    icon: { iconName: 'fingerprint', IconType: MaterialCommunityIcons },
-                                    onClick: () => this.togglePlatformPref('biometricSend', 'Biometric send confirmation'),
-                                    checkbox: true,
-                                    checked: this.state.platformPrefs.biometricSend,
-                                },
-                                {
-                                    title: 'Hide Balance In Widgets',
-                                    description: 'Widgets, Quick Settings tile and watch show no amounts',
-                                    icon: { iconName: 'eye-off', IconType: MaterialCommunityIcons },
-                                    onClick: () => this.togglePlatformPref('hideBalanceInWidgets', 'Hidden widget balance'),
-                                    checkbox: true,
-                                    checked: this.state.platformPrefs.hideBalanceInWidgets,
-                                },
                                 {
                                     title: 'Add Balance Widget',
                                     description: 'Place the balance widget on your home screen',

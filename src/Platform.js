@@ -2,7 +2,10 @@
 //
 // Please see the included LICENSE file for more information.
 //
-// Android platform features (native side: XTEPlatformModule and friends):
+// Platform features. Android native side: XTEPlatformModule and friends; iOS native side:
+// ios/XTE/Platform/XTEPlatform.swift (WidgetKit snapshot, Live Activities, Face ID, Home
+// Screen quick actions, Handoff, payment notification actions, Apple Watch bridge).
+// Android:
 //  - home-screen widgets (balance + last payment, receive QR), Quick Settings tile and the
 //    Wear OS copy, all from a public snapshot (address, balance text, last payment; no keys)
 //  - internal deep links <ticker>wallet://wallet|receive|send|transactions|addressbook used
@@ -11,7 +14,7 @@
 //  - BiometricPrompt for the address book and sending
 //  - Material You colours, per-app language
 
-import { NativeModules, Platform as RNPlatform, Dimensions } from 'react-native';
+import { NativeModules, Platform as RNPlatform, Dimensions, Share } from 'react-native';
 
 import AsyncStorage from '@react-native-community/async-storage';
 
@@ -21,7 +24,10 @@ import Config from './Config';
 
 import { Globals } from './Globals';
 
-const Native = RNPlatform.OS === 'android' ? NativeModules.XTEPlatform : undefined;
+const Native = NativeModules.XTEPlatform;
+
+const ANDROID = RNPlatform.OS === 'android';
+const IOS = RNPlatform.OS === 'ios';
 
 export const ROUTE_SCHEME = `${Config.ticker.toLowerCase()}wallet://`;
 
@@ -94,6 +100,7 @@ export function publishWidgetData(force = false) {
             networkHeight,
             hideBalance: !!platformPrefs().hideBalanceInWidgets,
         };
+        updateSyncActivity(walletHeight, networkHeight);
         const key = JSON.stringify({ ...data, walletHeight: Math.floor(walletHeight / 100) });
         /* Heights change every block; redraw at most every 2 minutes unless something else changed. */
         if (!force && key === lastPublished && Date.now() - lastPublishTime < 2 * 60 * 1000) {
@@ -105,6 +112,21 @@ export function publishWidgetData(force = false) {
     } catch (err) {
         /* wallet not ready */
     }
+}
+
+let lastSyncActivity = 0;
+
+/** iOS: Live Activity / Dynamic Island while a long catch-up runs (native side decides when). */
+function updateSyncActivity(walletHeight, networkHeight) {
+    if (!IOS || !Native || !Native.updateSyncActivity) {
+        return;
+    }
+    const done = networkHeight > 0 && walletHeight + 1 >= networkHeight;
+    if (!done && Date.now() - lastSyncActivity < 5000) {
+        return;
+    }
+    lastSyncActivity = Date.now();
+    Native.updateSyncActivity(walletHeight, networkHeight);
 }
 
 export function clearWidgetData() {
@@ -121,7 +143,7 @@ export function notePendingIncoming(amountAtomic) {
 }
 
 export function requestPinWidget(which) {
-    return Native ? Native.requestPinWidget(which).catch(() => false) : Promise.resolve(false);
+    return Native && ANDROID ? Native.requestPinWidget(which).catch(() => false) : Promise.resolve(false);
 }
 
 /* ---------- shortcuts ---------- */
@@ -168,7 +190,7 @@ export function handleRoute(url, navigation) {
         const [k, v = ''] = pair.split('=');
         params[decodeURIComponent(k)] = decodeURIComponent(v.replace(/\+/g, ' '));
     }
-    if (Native) {
+    if (Native && Native.reportShortcutUsed) {
         Native.reportShortcutUsed(host);
     }
     switch (host.replace(/\/$/, '').toLowerCase()) {
@@ -201,9 +223,12 @@ export function handleRoute(url, navigation) {
 
 /* ---------- notifications ---------- */
 
-/** Rich payment notification (Android); returns false when the caller should use its fallback. */
+/**
+ * Payment notification with "Show transactions" / "Show receive QR" actions (Android channel,
+ * iOS notification category); returns false when the caller should use its fallback.
+ */
 export function showPaymentNotification(transaction) {
-    if (!Native) {
+    if (!Native || !Native.showPaymentNotification) {
         return false;
     }
     const amount = prettyPrintAmount(transaction.totalAmount(), Config);
@@ -283,7 +308,7 @@ export function sendNeedsBiometric() {
 let dynamicColors;
 
 export async function loadDynamicColors() {
-    if (!Native) {
+    if (!Native || !ANDROID) {
         return undefined;
     }
     try {
@@ -318,9 +343,42 @@ export function applyDynamicColor(theme) {
 /* ---------- per-app language ---------- */
 
 export function openLanguageSettings() {
-    if (Native) {
+    if (Native && ANDROID) {
         Native.openLanguageSettings();
     }
+}
+
+/* ---------- launch routes, Handoff, sharing ---------- */
+
+/**
+ * iOS: a Home Screen quick action, notification action or Handoff that launched the app
+ * before JS listened for links. Resolves the route URL or null (and clears it).
+ */
+export async function consumePendingRoute() {
+    if (!IOS || !Native || !Native.consumePendingRoute) {
+        return null;
+    }
+    try {
+        return await Native.consumePendingRoute();
+    } catch (err) {
+        return null;
+    }
+}
+
+/** iOS Handoff: continue "receive" (address / QR) on another device signed in to the same Apple ID. */
+export function advertiseReceive(address) {
+    if (IOS && Native && Native.setHandoff && address) {
+        Native.setHandoff('receive', `${Config.uriPrefix}${address}`);
+    }
+}
+
+/** System share sheet with the payment URI (both platforms). */
+export function shareAddress(address) {
+    if (!address) {
+        return;
+    }
+    const uri = `${Config.uriPrefix}${address}`;
+    Share.share(IOS ? { message: uri, url: uri } : { message: uri, title: `${Config.ticker} address` }).catch(() => {});
 }
 
 /* ---------- large screens ---------- */

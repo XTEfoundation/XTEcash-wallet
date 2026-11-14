@@ -16,6 +16,13 @@
 #import <TSBackgroundFetch/TSBackgroundFetch.h>
 #import <UserNotifications/UserNotifications.h>
 
+/* Swift side: widgets, Live Activities, quick actions, Handoff, watch (ios/XTE/Platform) */
+/* The generated header skips @import in Objective-C++, so import its frameworks first. */
+#import <Foundation/Foundation.h>
+#import <LocalAuthentication/LocalAuthentication.h>
+#import <WatchConnectivity/WatchConnectivity.h>
+#import "XTE-Swift.h"
+
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
@@ -47,6 +54,10 @@
   /* Local "you received XTE" notifications (react-native-push-notification
      uses @react-native-community/push-notification-ios on iOS). */
   [UNUserNotificationCenter currentNotificationCenter].delegate = self;
+  [XTEPaymentNotifications installCategory];
+
+  /* Apple Watch companion: the watch app reads the public snapshot over WatchConnectivity. */
+  [XTEPaymentNotifications activateWatch];
 
   return YES;
 }
@@ -68,6 +79,35 @@
   return [RCTLinkingManager application:application openURL:url options:options];
 }
 
+/* Home Screen quick actions (static ones in Info.plist, "Pay <contact>" set from JS).
+   Also called after a cold start, before JS listens; the route is kept for
+   NativeModules.XTEPlatform.consumePendingRoute(). */
+- (void)application:(UIApplication *)application
+    performActionForShortcutItem:(UIApplicationShortcutItem *)shortcutItem
+               completionHandler:(void (^)(BOOL succeeded))completionHandler
+{
+  NSURL *url = [XTEPaymentNotifications routeURLForShortcut:shortcutItem];
+  if (url) {
+    [XTERouteDispatcher open:url];
+  }
+  completionHandler(url != nil);
+}
+
+/* Handoff (receive / send continued from another device) and universal links */
+- (BOOL)application:(UIApplication *)application
+    continueUserActivity:(NSUserActivity *)userActivity
+      restorationHandler:(void (^)(NSArray<id<UIUserActivityRestoring>> *restorableObjects))restorationHandler
+{
+  NSURL *url = [XTEPaymentNotifications routeURLForActivity:userActivity];
+  if (url) {
+    [XTERouteDispatcher open:url];
+    return YES;
+  }
+  return [RCTLinkingManager application:application
+                   continueUserActivity:userActivity
+                     restorationHandler:restorationHandler];
+}
+
 /* Show notifications while the app is in the foreground too */
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
        willPresentNotification:(UNNotification *)notification
@@ -80,6 +120,13 @@
     didReceiveNotificationResponse:(UNNotificationResponse *)response
              withCompletionHandler:(void (^)(void))completionHandler
 {
+  /* Payment notifications: "Show transactions" / "Show receive QR" actions */
+  NSURL *route = [XTEPaymentNotifications routeURLForResponse:response];
+  if (route) {
+    [XTERouteDispatcher open:route];
+    completionHandler();
+    return;
+  }
   [RNCPushNotificationIOS didReceiveNotificationResponse:response];
   completionHandler();
 }

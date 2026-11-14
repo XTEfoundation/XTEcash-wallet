@@ -37,6 +37,16 @@
 				<string>xte</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>io.traaitt.osx.route</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>xtewallet</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
@@ -63,6 +73,13 @@
 	<string>XTE uses Face ID to unlock your wallet and confirm transactions.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>XTE does not record audio. The QR code scanner's camera library declares microphone access, but XTE never uses it.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>io.traaitt.wallet.receive</string>
+		<string>io.traaitt.wallet.send</string>
+	</array>
 	<key>UIAppFonts</key>
 	<array>
 		<string>AntDesign.ttf</string>
@@ -74,6 +91,48 @@
 		<string>MaterialCommunityIcons.ttf</string>
 		<string>MaterialIcons.ttf</string>
 		<string>SimpleLineIcons.ttf</string>
+	</array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>qrcode</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Receive</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>io.traaitt.wallet.receive</string>
+			<key>UIApplicationShortcutItemUserInfo</key>
+			<dict>
+				<key>url</key>
+				<string>xtewallet://receive</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>paperplane</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Send</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>io.traaitt.wallet.send</string>
+			<key>UIApplicationShortcutItemUserInfo</key>
+			<dict>
+				<key>url</key>
+				<string>xtewallet://send</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>list.bullet</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Transactions</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>io.traaitt.wallet.transactions</string>
+			<key>UIApplicationShortcutItemUserInfo</key>
+			<dict>
+				<key>url</key>
+				<string>xtewallet://transactions</string>
+			</dict>
+		</dict>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
@@ -92,5 +151,15 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>WalletActivityPrefix</key>
+	<string>io.traaitt.wallet</string>
+	<key>WalletPaymentScheme</key>
+	<string>xte</string>
+	<key>WalletRouteScheme</key>
+	<string>xtewallet</string>
+	<key>WalletSharedKeychainGroup</key>
+	<string>$(AppIdentifierPrefix)io.traaitt.osx.shared</string>
+	<key>WalletTicker</key>
+	<string>XTE</string>
 </dict>
 </plist>
