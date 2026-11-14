@@ -34,7 +34,9 @@ import { saveToDatabase } from './Database';
 import { Globals, initGlobals } from './Globals';
 import { reportCaughtException } from './Sentry';
 import { processBlockOutputs, makePostRequest } from './NativeCode';
-import { initBackgroundSync } from './BackgroundSync';
+import {
+    initBackgroundSync, rememberWalletForBackground, claimNotification, maybeStartRestoreService,
+} from './BackgroundSync';
 import { CopyButton, OneLineText } from './SharedComponents';
 import { coinsToFiat, getCoinPriceFromAPI } from './Currency';
 
@@ -66,6 +68,9 @@ async function init(navigation) {
 
     initGlobals();
 
+    /* View key + height for the view-only background sync. */
+    rememberWalletForBackground(Globals.wallet);
+
     PushNotification.configure({
         onNotification: handleNotification,
 
@@ -91,7 +96,7 @@ function handleNotification(notification) {
     notification.finish(PushNotificationIOS.FetchResult.NoData);
 }
 
-export function sendNotification(transaction) {
+export async function sendNotification(transaction) {
     /* Don't show notifications if disabled */
     if (!Globals.preferences.notificationsEnabled) {
         return;
@@ -99,6 +104,11 @@ export function sendNotification(transaction) {
 
     /* Don't show notifications in foreground */
     if (AppState.currentState !== 'background') {
+        return;
+    }
+
+    /* The view-only background sync and the wallet may both see a payment. */
+    if (!await claimNotification(transaction.hash)) {
         return;
     }
 
@@ -195,6 +205,7 @@ export class MainScreen extends React.Component {
         if (appState === 'active') {
             this.updateBalance();
             this.resumeSyncing();
+            maybeStartRestoreService();
         }
     }
 
@@ -216,6 +227,7 @@ export class MainScreen extends React.Component {
         AppState.addEventListener('change', this.handleAppStateChange);
         Linking.addEventListener('url', this.handleURI);
         initBackgroundSync();
+        maybeStartRestoreService();
     }
 
     componentWillUnmount() {
@@ -528,6 +540,7 @@ async function backgroundSave() {
     try {
         await saveToDatabase(Globals.wallet);
         Globals.logger.addLogMessage('Save complete.');
+        rememberWalletForBackground(Globals.wallet);
     } catch (err) {
         reportCaughtException(err);
         Globals.logger.addLogMessage('Failed to background save: ' + err);

@@ -18,6 +18,7 @@ import { parseNode } from './NodeAddress';
 import { Logger } from './Logger';
 import { getCoinPriceFromAPI } from './Currency';
 import { makePostRequest } from './NativeCode';
+import { attachGateway } from './Gateway';
 
 import {
     loadPayeeDataFromDatabase, savePayeeToDatabase, removePayeeFromDatabase,
@@ -109,6 +110,17 @@ class globals {
                actually cancel requests part way through */
             daemon.makePostRequest = makePostRequest;
         }
+
+        /* Fast path: the node's xte-rpc-gateway (1000 cached blocks per request),
+           detected via /rpc/<coin>/health; REST /getwalletsyncdata otherwise. */
+        attachGateway(daemon, {
+            host: node.host,
+            port: node.port,
+            ssl: node.ssl,
+            namespace: Config.gatewayNamespace,
+            blockCount: Config.gatewayBlocksPerRequest,
+            logger: (msg) => this.logger && this.logger.addLogMessage(msg),
+        });
 
         return daemon;
     }

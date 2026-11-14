@@ -36,6 +36,7 @@ import { Globals } from './Globals';
 import { Authenticate } from './Authenticate';
 import { SeedComponent, CopyButton } from './SharedComponents';
 import { savePreferencesToDatabase, setHaveWallet } from './Database';
+import { DEFAULT_BACKGROUND_PREFS, loadBackgroundPrefs, setBackgroundPref, initBackgroundSync } from './BackgroundSync';
 
 import {
     navigateWithDisabledBack, toastPopUp, getArrivalTime,
@@ -714,7 +715,19 @@ export class SettingsScreen extends React.Component {
             darkMode: Globals.preferences.theme === 'darkMode',
             authConfirmation: Globals.preferences.authConfirmation,
             autoOptimize: Globals.preferences.autoOptimize,
+            backgroundPrefs: Globals.backgroundPrefs || DEFAULT_BACKGROUND_PREFS,
         }
+    }
+
+    componentDidMount() {
+        loadBackgroundPrefs().then((backgroundPrefs) => this.setState({ backgroundPrefs }));
+    }
+
+    async toggleBackgroundPref(name, message) {
+        const value = !this.state.backgroundPrefs[name];
+        const backgroundPrefs = await setBackgroundPref(name, value);
+        this.setState({ backgroundPrefs });
+        toastPopUp(`${message} ${value ? 'enabled' : 'disabled'}`);
     }
 
     render() {
@@ -858,6 +871,9 @@ export class SettingsScreen extends React.Component {
                                         Globals.wallet.start();
                                     }
 
+                                    /* Background sync: Wi-Fi only constraint */
+                                    initBackgroundSync();
+
                                     toastPopUp(Globals.preferences.limitData ? 'Data limiting enabled' : 'Data limiting disabled');
                                     savePreferencesToDatabase(Globals.preferences);
                                 },
@@ -966,6 +982,39 @@ export class SettingsScreen extends React.Component {
                                 checkbox: true,
                                 checked: this.state.notifsEnabled,
                             },
+                            {
+                                title: 'Background Sync',
+                                description: 'Sync and notify about payments while closed (view key only)',
+                                icon: {
+                                    iconName: 'sync',
+                                    IconType: MaterialIcons,
+                                },
+                                onClick: () => this.toggleBackgroundPref('enabled', 'Background sync'),
+                                checkbox: true,
+                                checked: this.state.backgroundPrefs.enabled,
+                            },
+                            {
+                                title: 'Background Sync Only When Charging',
+                                description: 'Save battery: only sync in the background while charging',
+                                icon: {
+                                    iconName: 'battery-charging',
+                                    IconType: MaterialCommunityIcons,
+                                },
+                                onClick: () => this.toggleBackgroundPref('chargingOnly', 'Charging only sync'),
+                                checkbox: true,
+                                checked: this.state.backgroundPrefs.chargingOnly,
+                            },
+                            ...(Platform.OS === 'android' ? [{
+                                title: 'Keep Restoring In Background',
+                                description: 'Shows a sync notification while a long restore runs',
+                                icon: {
+                                    iconName: 'cloud-sync',
+                                    IconType: MaterialCommunityIcons,
+                                },
+                                onClick: () => this.toggleBackgroundPref('restoreService', 'Background restore'),
+                                checkbox: true,
+                                checked: this.state.backgroundPrefs.restoreService,
+                            }] : []),
                             {
                                 title: 'Scan Coinbase Transactions',
                                 description: 'Enable this if you have solo mined',

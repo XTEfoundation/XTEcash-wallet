@@ -154,6 +154,17 @@ const Config = new function() {
     this.blocksPerDaemonRequest = 100;
 
     /**
+     * JSON-RPC namespace of the xte-rpc-gateway on the node
+     * (https://<host>/rpc/<namespace>, <namespace>_syncBlocks)
+     */
+    this.gatewayNamespace = 'xte';
+
+    /**
+     * Blocks per <namespace>_syncBlocks call (the gateway allows up to 1000)
+     */
+    this.gatewayBlocksPerRequest = 1000;
+
+    /**
      * Unix timestamp of the time your chain was launched.
      * XTE Genesis block timestamp: 1686748487
      */
@@ -220,7 +231,7 @@ const Config = new function() {
     /**
      * Displayed in the settings screen
      */
-    this.appVersion = 'v1.020.2';
+    this.appVersion = 'v1.020.3';
 
     /**
      * Base URL for us to chuck a hash on the end, and find a transaction

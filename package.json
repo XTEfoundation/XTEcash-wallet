@@ -1,6 +1,6 @@
 {
   "name": "XTE",
-  "version": "1.020.2",
+  "version": "1.020.3",
   "private": true,
   "scripts": {
     "start": "react-native start",

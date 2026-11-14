@@ -21,6 +21,7 @@ public class XTEPackage implements ReactPackage {
 
         modules.add(new XTEModule(reactContext));
         modules.add(new XTESecurityModule(reactContext));
+        modules.add(new XTEBackgroundModule(reactContext));
 
         return modules;
     }

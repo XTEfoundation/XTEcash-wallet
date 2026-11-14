@@ -473,6 +473,15 @@ export async function haveWallet() {
 export async function setHaveWallet(haveWallet) {
     try {
         await AsyncStorage.setItem(Config.coinName + 'HaveWallet', haveWallet.toString());
+
+        if (!haveWallet) {
+            /* Drop the background sync view key and view-only copy too. */
+            await AsyncStorage.multiRemove([
+                Config.coinName + 'BgSync.viewSeed',
+                Config.coinName + 'BgSync.viewWallet',
+                Config.coinName + 'BgSync.notified',
+            ]);
+        }
     } catch (error) {
         reportCaughtException(error);
         Globals.logger.addLogMessage('Failed to save have wallet status: ' + error);

@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.USE_FINGERPRINT" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
       android:name="io.traaitt.osx.MainApplication"
@@ -52,6 +54,12 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!-- Optional foreground service for a long restore (src/BackgroundSync.js). -->
+        <service
+            android:name="io.traaitt.osx.WalletSyncService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
       <activity
         android:name="io.traaitt.osx.MainActivity"
