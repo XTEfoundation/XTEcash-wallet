@@ -6,6 +6,7 @@
 // Settings > Security & Backup. Everything here is optional.
 
 import React from 'react';
+import { HapticSwitch } from './Feedback';
 
 import {
     ActivityIndicator, Alert, Platform, ScrollView, Switch, Text, TextInput,
@@ -288,7 +289,7 @@ export class SecurityScreen extends React.Component {
                             theme={theme}
                             title='Hardware key encryption'
                             description={`Encrypt the wallet file with a key that never leaves the ${Platform.OS === 'ios' ? 'Secure Enclave' : 'Android Keystore (StrongBox when available)'}. Key storage: ${s.vaultLevel}`}
-                            right={<Switch value={!!s.hardwareVault} disabled={s.busy} onValueChange={(v) => this.toggleVault(v)} />}
+                            right={<HapticSwitch value={!!s.hardwareVault} disabled={s.busy} onValueChange={(v) => this.toggleVault(v)} />}
                         />
                         <Row
                             theme={theme}
@@ -304,7 +305,7 @@ export class SecurityScreen extends React.Component {
                             theme={theme}
                             title='Confirm sends'
                             description='Ask for Face ID / fingerprint / PIN before every transfer and before showing keys'
-                            right={<Switch value={!!s.authConfirmation} onValueChange={(v) => this.toggleAuthConfirmation(v)} />}
+                            right={<HapticSwitch value={!!s.authConfirmation} onValueChange={(v) => this.toggleAuthConfirmation(v)} />}
                         />
                         <Text style={{ color: theme.primaryColour, fontSize: 16, marginTop: 10 }}>Auto-lock</Text>
                         <Text style={{ color: theme.slightlyMoreVisibleColour, fontSize: 13 }}>
@@ -342,7 +343,7 @@ export class SecurityScreen extends React.Component {
                             description={Platform.OS === 'ios'
                                 ? 'Blur the wallet in the app switcher'
                                 : 'Block screenshots and screen recording, and hide the wallet in recent apps'}
-                            right={<Switch value={!!s.screenProtection} onValueChange={(v) => this.setPref({ screenProtection: v })} />}
+                            right={<HapticSwitch value={!!s.screenProtection} onValueChange={(v) => this.setPref({ screenProtection: v })} />}
                         />
                     </Section>
 
@@ -351,7 +352,7 @@ export class SecurityScreen extends React.Component {
                             theme={theme}
                             title='Incoming transfers'
                             description='Local notification when background sync finds a payment to you. Nothing is sent to a server.'
-                            right={<Switch value={!!s.notificationsEnabled} onValueChange={(v) => this.toggleNotifications(v)} />}
+                            right={<HapticSwitch value={!!s.notificationsEnabled} onValueChange={(v) => this.toggleNotifications(v)} />}
                         />
                     </Section>
 

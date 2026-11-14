@@ -8,6 +8,7 @@
 RCT_EXTERN_METHOD(updateWidgetData:(NSString *)json resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(notePendingIncoming:(NSString *)text)
 RCT_EXTERN_METHOD(clearWidgetData)
+RCT_EXTERN_METHOD(haptic:(NSString *)kind)
 RCT_EXTERN_METHOD(setDynamicShortcuts:(NSString *)json resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(reportShortcutUsed:(NSString *)shortcutId)
 RCT_EXTERN_METHOD(consumePendingRoute:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)

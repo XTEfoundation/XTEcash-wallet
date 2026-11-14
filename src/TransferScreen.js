@@ -3,6 +3,7 @@
 // Please see the included LICENSE file for more information.
 
 import React from 'react';
+import { haptic } from './Feedback';
 
 import * as Animatable from 'react-native-animatable';
 
@@ -1241,11 +1242,13 @@ export class SendTransactionScreen extends React.Component {
         );
 
         if (error) {
+            haptic('warning');
             this.setState({
                 errMsg: error.toString(),
                 homeEnabled: true,
             });
         } else {
+            haptic('success');
             this.setState({
                 hash,
                 homeEnabled: true,

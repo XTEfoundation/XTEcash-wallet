@@ -5,6 +5,7 @@
 import * as _ from 'lodash';
 
 import React from 'react';
+import { PopOnChange } from './Feedback';
 
 import TextTicker from 'react-native-text-ticker';
 
@@ -1234,7 +1235,9 @@ export class SettingsScreen extends React.Component {
                                 }
                                 rightIcon={item.checkbox &&
                                     <View style={{width: 30, alignItems: 'center', justifyContent: 'center', marginRight: 10}}>
-                                        <MaterialIcons name={item.checked ? 'check-box' : 'check-box-outline-blank'} size={25} color={this.props.screenProps.theme.primaryColour}/>
+                                        <PopOnChange active={!!item.checked}>
+                                            <MaterialIcons name={item.checked ? 'check-box' : 'check-box-outline-blank'} size={25} color={this.props.screenProps.theme.primaryColour}/>
+                                        </PopOnChange>
                                     </View>
                                 }
                                 onPress={item.onClick}

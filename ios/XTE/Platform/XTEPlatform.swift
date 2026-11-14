@@ -69,6 +69,19 @@ final class XTEPlatform: NSObject {
         Self.reloadWidgets()
     }
 
+    /// Subtle haptic for selections/confirmations (UIKit follows the system haptics setting).
+    @objc func haptic(_ kind: NSString) {
+        let k = kind as String
+        DispatchQueue.main.async {
+            switch k {
+            case "success": UINotificationFeedbackGenerator().notificationOccurred(.success)
+            case "warning", "error": UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            case "selection": UISelectionFeedbackGenerator().selectionChanged()
+            default: UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+        }
+    }
+
     @objc func clearWidgetData() {
         SnapshotStore.clear()
         Self.reloadWidgets()

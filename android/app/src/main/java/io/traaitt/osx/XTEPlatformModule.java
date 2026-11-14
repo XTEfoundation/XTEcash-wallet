@@ -10,6 +10,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.LocaleList;
 import android.provider.Settings;
+import android.view.HapticFeedbackConstants;
+import android.view.View;
 
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
@@ -50,6 +52,34 @@ public class XTEPlatformModule extends ReactContextBaseJavaModule {
 
     private Context ctx() {
         return getReactApplicationContext();
+    }
+
+    /* ---------- haptics ---------- */
+
+    /** Subtle haptic tick for selections/confirmations; follows the system touch-feedback setting. */
+    @ReactMethod
+    public void haptic(String kind) {
+        final Activity activity = getCurrentActivity();
+        if (activity == null) {
+            return;
+        }
+        activity.runOnUiThread(() -> {
+            View v = activity.getWindow() != null ? activity.getWindow().getDecorView() : null;
+            if (v == null) {
+                return;
+            }
+            int c;
+            if ("success".equals(kind)) {
+                c = Build.VERSION.SDK_INT >= 30 ? HapticFeedbackConstants.CONFIRM : HapticFeedbackConstants.CONTEXT_CLICK;
+            } else if ("warning".equals(kind) || "error".equals(kind)) {
+                c = Build.VERSION.SDK_INT >= 30 ? HapticFeedbackConstants.REJECT : HapticFeedbackConstants.LONG_PRESS;
+            } else if ("selection".equals(kind)) {
+                c = Build.VERSION.SDK_INT >= 27 ? HapticFeedbackConstants.KEYBOARD_RELEASE : HapticFeedbackConstants.KEYBOARD_TAP;
+            } else {
+                c = HapticFeedbackConstants.VIRTUAL_KEY;
+            }
+            v.performHapticFeedback(c);
+        });
     }
 
     /* ---------- widgets, tile, watch ---------- */

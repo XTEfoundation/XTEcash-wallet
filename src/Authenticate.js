@@ -11,6 +11,7 @@ import * as Animatable from 'react-native-animatable';
 import RNExitApp from 'react-native-exit-app';
 
 import React from 'react';
+import { HapticSwitch } from './Feedback';
 
 import { View, Alert, Text, Platform, Image, Switch } from 'react-native';
 
@@ -246,7 +247,7 @@ export class ChooseAuthMethodScreen extends React.Component {
                     </Text>
 
                     <View style={{ flexDirection: 'row', marginRight: 20, marginLeft: 25, marginBottom: 20 }}>
-                        <Switch
+                        <HapticSwitch
                             value={this.state.hardwareAuth}
                             onValueChange={(value) => {
                                 this.setState({
@@ -269,7 +270,7 @@ export class ChooseAuthMethodScreen extends React.Component {
                     </View>
 
                     <View style={{ flexDirection: 'row', marginRight: 20, marginLeft: 25, marginBottom: 20 }}>
-                        <Switch
+                        <HapticSwitch
                             value={this.state.pinCode}
                             onValueChange={(value) => {
                                 this.setState({
@@ -293,7 +294,7 @@ export class ChooseAuthMethodScreen extends React.Component {
                     </View>
 
                     <View style={{ flexDirection: 'row', marginRight: 20, marginLeft: 25, marginBottom: 20 }}>
-                        <Switch
+                        <HapticSwitch
                             value={this.state.noAuth}
                             onValueChange={(value) => {
                                 this.setState({

@@ -3,6 +3,7 @@
 // Please see the included LICENSE file for more information.
 
 import React from 'react';
+import { PressScale, haptic } from './Feedback';
 
 import FontAwesome from 'react-native-vector-icons/FontAwesome5';
 
@@ -377,9 +378,9 @@ export class MainScreen extends React.Component {
                         />
                     </View>
 
-                    <TouchableOpacity onPress={() => this.setState({ addressOnly: !this.state.addressOnly })}>
+                    <PressScale hapticKind='selection' onPress={() => this.setState({ addressOnly: !this.state.addressOnly })}>
                         <AddressComponent {...this.props}/>
-                    </TouchableOpacity>
+                    </PressScale>
 
                     <View style={{ opacity: this.state.addressOnly ? 0 : 100, flex: 1 }}>
                         <SyncComponent {...this.props}/>
@@ -563,8 +564,9 @@ class RecentTransactionsPane extends React.Component {
                 {txs.map((tx) => {
                     const amount = tx.totalAmount();
                     return(
-                        <TouchableOpacity
+                        <PressScale
                             key={tx.hash}
+                            hapticKind='selection'
                             onPress={() => this.props.navigation.navigate('Transactions')}
                             style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}
                         >
@@ -574,7 +576,7 @@ class RecentTransactionsPane extends React.Component {
                             <Text style={{ color: amount >= 0 ? theme.secondaryColour : theme.primaryColour, fontWeight: 'bold' }}>
                                 {amount >= 0 ? '+' : ''}{prettyPrintAmount(amount, Config)}
                             </Text>
-                        </TouchableOpacity>
+                        </PressScale>
                     );
                 })}
             </View>
