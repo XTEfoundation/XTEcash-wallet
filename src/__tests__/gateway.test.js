@@ -86,8 +86,56 @@ describe('attachGateway', () => {
                 : response(200, { error: { code: -32000, message: 'daemon unreachable' } })),
         });
         expect((await daemon2.getWalletSyncData([], 0, 0, 100))[0]).toEqual(['rest2']);
-        expect(isGatewayActive('https://node2.example/rpc/xte')).toBe(false);
+        /* A JSON-RPC error is per request: the gateway answered, so it stays in use. */
+        expect(isGatewayActive('https://node2.example/rpc/xte')).toBe(true);
         expect(restCalls).toHaveLength(2);
         expect(restCalls[1]).toEqual([[], 0, 0, 100]);
+    });
+
+    test('never sends startTimestamp to the gateway; fresh wallets use REST once without disabling it', async () => {
+        const gatewayBodies = [];
+        const restCalls = [];
+        const fetchFn = async (url, opts) => {
+            if (url.endsWith('/health')) {
+                return response(200, { gateway: 'xte-rpc-gateway', coin: 'xte', apiVersion: 1, status: 'ok' });
+            }
+            gatewayBodies.push(JSON.parse(opts.body).params[0]);
+            return response(200, { result: { items: [item(11)], synced: false } });
+        };
+        const daemon = { getWalletSyncData: async (...a) => { restCalls.push(a); return [[item(10)], true]; }, config: {} };
+        attachGateway(daemon, { host: 'n.example', port: 443, ssl: true, namespace: 'xte', fetchFn });
+        await daemon.getWalletSyncData([], 0, 1700000000, 100);
+        expect(restCalls).toEqual([[[], 0, 1700000000, 100]]);
+        expect(gatewayBodies).toHaveLength(0);
+        /* Next call has a checkpoint (backend still passes the old timestamp). */
+        const [blocks] = await daemon.getWalletSyncData([hash(10)], 0, 1700000000, 100);
+        expect(blocks[0].blockHeight).toBe(11);
+        expect(gatewayBodies[0]).toEqual({ startHeight: 0, blockCount: 1000, skipCoinbase: true, checkpoints: [hash(10)] });
+        expect(buildSyncRequest('xte', [], 5, 1700000000, 1000, false).params[0].startTimestamp).toBeUndefined();
+    });
+
+    test('one transport failure falls back for that call only; repeated failures disable briefly', async () => {
+        let fail = true;
+        const restCalls = [];
+        const fetchFn = async (url) => {
+            if (url.endsWith('/health')) {
+                return response(200, { gateway: 'xte-rpc-gateway', coin: 'xte', apiVersion: 1, status: 'ok' });
+            }
+            if (fail) {
+                throw new Error('Network request failed');
+            }
+            return response(200, { result: { items: [item(3)], synced: false } });
+        };
+        const daemon = { getWalletSyncData: async (...a) => { restCalls.push(a); return [['rest'], true]; }, config: {} };
+        attachGateway(daemon, { host: 'm.example', port: 443, ssl: true, namespace: 'xte', fetchFn });
+        const url = 'https://m.example/rpc/xte';
+        expect((await daemon.getWalletSyncData([hash(1)], 0, 0, 100))[0]).toEqual(['rest']);
+        expect(isGatewayActive(url)).toBe(true);
+        fail = false;
+        expect((await daemon.getWalletSyncData([hash(1)], 0, 0, 100))[0][0].blockHeight).toBe(3);
+        fail = true;
+        await daemon.getWalletSyncData([hash(1)], 0, 0, 100);
+        await daemon.getWalletSyncData([hash(1)], 0, 0, 100);
+        expect(isGatewayActive(url)).toBe(false);
     });
 });
