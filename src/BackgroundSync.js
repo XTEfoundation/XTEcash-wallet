@@ -373,7 +373,9 @@ async function runSyncLoop(wallet, budgetSeconds, save) {
 
 async function syncLoadedWallet(budgetSeconds) {
     log('Syncing the loaded wallet...');
-    await runSyncLoop(Globals.wallet, budgetSeconds, () => saveToDatabase(Globals.wallet));
+    /* Shares the lock with pull-to-refresh, so neither cancels the other. */
+    const { runExclusive } = require('./SyncNow');
+    await runExclusive(() => runSyncLoop(Globals.wallet, budgetSeconds, () => saveToDatabase(Globals.wallet)));
 }
 
 async function syncViewWallet(budgetSeconds) {

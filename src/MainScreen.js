@@ -42,6 +42,7 @@ import {
     isWideLayout, consumePendingRoute, advertiseReceive, shareAddress,
 } from './Platform';
 import { CopyButton, OneLineText } from './SharedComponents';
+import { syncNow } from './SyncNow';
 import { coinsToFiat, getCoinPriceFromAPI } from './Currency';
 
 async function init(navigation) {
@@ -286,16 +287,35 @@ export class MainScreen extends React.Component {
         this.unsubscribe();
     }
 
+    /* Pull to refresh: a real sync (gateway, REST fallback); the spinner stays until it
+       has finished. A pull while a sync runs joins it instead of cancelling it. */
     async refresh() {
-        this.setState({
-            refreshing: true,
-        });
-
-        await this.updateBalance();
-
-        this.setState({
-            refreshing: false,
-        });
+        if (this.refreshPromise) {
+            return this.refreshPromise;
+        }
+        this.setState({ refreshing: true });
+        this.refreshPromise = (async () => {
+            try {
+                /* Paused by "limit data" or a node swap: syncNow syncs directly. */
+                await syncNow();
+            } finally {
+                try {
+                    await this.updateBalance();
+                } catch (err) {
+                    /* price API offline: balance is still updated below */
+                }
+                const [unlockedBalance, lockedBalance] = Globals.wallet.getBalance();
+                publishWidgetData(true);
+                this.refreshPromise = undefined;
+                this.setState({
+                    refreshing: false,
+                    unlockedBalance,
+                    lockedBalance,
+                    txVersion: (this.state.txVersion || 0) + 1,
+                });
+            }
+        })();
+        return this.refreshPromise;
     }
 
     render() {
@@ -306,16 +326,22 @@ export class MainScreen extends React.Component {
             <ScrollView
                 refreshControl={
                     <RefreshControl
-                        refreshing={this.state.refreshing}
+                        refreshing={!!this.state.refreshing}
                         onRefresh={this.refresh}
-                        title='Updating coin price...'
+                        title='Syncing...'
+                        titleColor={this.props.screenProps.theme.slightlyMoreVisibleColour}
+                        tintColor={this.props.screenProps.theme.primaryColour}
+                        colors={[this.props.screenProps.theme.primaryColour]}
+                        progressBackgroundColor={this.props.screenProps.theme.backgroundColour}
                     />
                 }
                 style={{
                     backgroundColor: this.props.screenProps.theme.backgroundColour,
                 }}
-                contentContainerstyle={{
-                    flex: 1,
+                /* Content is exactly one screen high: keep the pull gesture alive anyway. */
+                alwaysBounceVertical={true}
+                contentContainerStyle={{
+                    flexGrow: 1,
                 }}
             >
                 <NavigationEvents
@@ -362,6 +388,7 @@ export class MainScreen extends React.Component {
                 {/* Second pane on unfolded foldables / tablets */}
                 {isWideLayout(this.state.window) && !this.state.addressOnly &&
                     <RecentTransactionsPane
+                        version={this.state.txVersion}
                         height={this.state.window.height - 73}
                         unlockedBalance={this.state.unlockedBalance}
                         {...this.props}

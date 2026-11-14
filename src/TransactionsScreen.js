@@ -9,7 +9,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import TextTicker from 'react-native-text-ticker';
 
 import { Header } from 'react-native-elements';
-import { View, Text, FlatList, Button, Linking, ScrollView } from 'react-native';
+import { View, Text, FlatList, Button, Linking, ScrollView, RefreshControl } from 'react-native';
 import { prettyPrintAmount } from 'traaittcash-wallet-backend';
 
 import Config from './Config';
@@ -21,6 +21,7 @@ import { Styles } from './Styles';
 import { Globals } from './Globals';
 import { coinsToFiat } from './Currency';
 import { prettyPrintUnixTimestamp, prettyPrintDate } from './Utilities';
+import { syncNow } from './SyncNow';
 
 class ItemDescription extends React.Component {
     constructor(props) {
@@ -238,6 +239,37 @@ export class TransactionsScreen extends React.Component {
         });
 
         this.changePage = this.changePage.bind(this);
+        this.refresh = this.refresh.bind(this);
+    }
+
+    /* Pull to refresh: real sync, spinner until it is done, joins a running sync. */
+    async refresh() {
+        if (this.state.refreshing) {
+            return;
+        }
+        this.setState({ refreshing: true });
+        try {
+            await syncNow();
+        } finally {
+            const [walletHeight, , networkHeight] = Globals.wallet.getSyncStatus();
+            this.updateTransactions();
+            this.setState({ refreshing: false, walletHeight, networkHeight });
+        }
+    }
+
+    refreshControl() {
+        const theme = this.props.screenProps.theme;
+        return (
+            <RefreshControl
+                refreshing={!!this.state.refreshing}
+                onRefresh={this.refresh}
+                title='Syncing...'
+                titleColor={theme.slightlyMoreVisibleColour}
+                tintColor={theme.primaryColour}
+                colors={[theme.primaryColour]}
+                progressBackgroundColor={theme.backgroundColour}
+            />
+        );
     }
 
     updateTransactions() {
@@ -293,12 +325,17 @@ export class TransactionsScreen extends React.Component {
           : "\nYour wallet isn't fully synced. If you're expecting some transactions, please wait.";
 
         const noTransactions = 
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: this.props.screenProps.theme.backgroundColour }}>
+            <ScrollView
+                refreshControl={this.refreshControl()}
+                alwaysBounceVertical={true}
+                style={{ backgroundColor: this.props.screenProps.theme.backgroundColour }}
+                contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}
+            >
                 <Text style={{ fontSize: 20, color: this.props.screenProps.theme.primaryColour, justifyContent: 'center', textAlign: 'center' }}>
                     Looks like you haven't sent{"\n"}or received any transactions yet!{"\n"}
                     {syncedMsg}
                 </Text>
-            </View>;
+            </ScrollView>;
 
         return(
             this.state.numTransactions === 0 ?
@@ -309,6 +346,7 @@ export class TransactionsScreen extends React.Component {
                 numTransactions={this.state.numTransactions}
                 transactions={this.state.transactions}
                 changePage={this.changePage}
+                refreshControl={this.refreshControl()}
             />
         );
     }
@@ -395,6 +433,7 @@ class TransactionList extends React.Component {
                     backgroundColor: this.props.screenProps.theme.backgroundColour,
                 }}>
                     <FlatList
+                        refreshControl={this.props.refreshControl}
                         extraData={this.state.index}
                         data={this.props.transactions}
                         keyExtractor={item => item.hash}
