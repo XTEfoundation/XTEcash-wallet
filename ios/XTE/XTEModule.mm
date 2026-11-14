@@ -524,7 +524,7 @@ RCT_EXPORT_METHOD(navigateToBatteryOptimizationScreen:(RCTPromiseResolveBlock)re
 /* ------------------------------------------------------------------------ */
 
 #import <Security/Security.h>
-#import <CommonCrypto/CommonKeyDerivation.h>
+#import <CommonCrypto/CommonCrypto.h>
 #import <UIKit/UIKit.h>
 
 @interface XTESecurityModule : NSObject <RCTBridgeModule>
