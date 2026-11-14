@@ -597,9 +597,17 @@ class SyncComponent extends React.Component {
             networkHeight,
             progress: 0,
             percent: '0.00',
+            /* 'syncing' | 'synced' | 'error' - derived from heights and node events. */
+            status: 'syncing',
+            lastSynced: undefined,
+            connected: true,
         };
 
         this.updateSyncStatus = this.updateSyncStatus.bind(this);
+        this.poll = this.poll.bind(this);
+        this.onDisconnect = () => this.setState({ connected: false, status: 'error' });
+        this.onConnect = () => this.setState({ connected: true }, this.poll);
+        this.onSync = () => this.poll();
 
         this.syncRef = (ref) => this.sync = ref;
     }
@@ -635,23 +643,67 @@ class SyncComponent extends React.Component {
 
         const justSynced = progress === 1 && this.state.progress !== 1;
 
+        /* Synced = wallet caught up with the node (one block of slack for the
+           height poll interval). Error = the node is unreachable ('disconnect'). */
+        const caughtUp = networkHeight > 0 && walletHeight + 1 >= networkHeight;
+        let status = caughtUp ? 'synced' : 'syncing';
+        if (!this.state.connected) {
+            status = 'error';
+        }
+
         this.setState({
             walletHeight,
             localHeight,
             networkHeight,
             progress,
             percent: percent.toFixed(2),
-        }, () => { if (justSynced) { this.sync.bounce(800) } });
+            status,
+            lastSynced: caughtUp ? new Date() : this.state.lastSynced,
+        }, () => { if (justSynced && this.sync) { this.sync.bounce(800) } });
+    }
+
+    /* 'heightchange' only fires when blocks arrive: also poll, so the state is
+       right after pull-to-refresh, background sync, gateway/REST fallback and
+       when the wallet is already synced on open. */
+    poll() {
+        if (Globals.wallet) {
+            const [walletHeight, localHeight, networkHeight] = Globals.wallet.getSyncStatus();
+            this.updateSyncStatus(walletHeight, localHeight, networkHeight);
+        }
     }
 
     componentDidMount() {
         Globals.wallet.on('heightchange', this.updateSyncStatus);
+        Globals.wallet.on('disconnect', this.onDisconnect);
+        Globals.wallet.on('connect', this.onConnect);
+        Globals.wallet.on('sync', this.onSync);
+        Globals.wallet.on('desync', this.onSync);
+        this.poll();
+        this.pollTimer = setInterval(this.poll, 3000);
     }
 
     componentWillUnmount() {
+        clearInterval(this.pollTimer);
         if (Globals.wallet) {
             Globals.wallet.removeListener('heightchange', this.updateSyncStatus);
+            Globals.wallet.removeListener('disconnect', this.onDisconnect);
+            Globals.wallet.removeListener('connect', this.onConnect);
+            Globals.wallet.removeListener('sync', this.onSync);
+            Globals.wallet.removeListener('desync', this.onSync);
         }
+    }
+
+    statusText() {
+        const last = this.state.lastSynced
+            ? ` · ${this.state.lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+            : '';
+        if (this.state.status === 'synced') {
+            return `Synced${last}`;
+        }
+        if (this.state.status === 'error') {
+            return `Node not reachable - retrying${last}`;
+        }
+        return 'Syncing…';
     }
 
     render() {
@@ -662,6 +714,13 @@ class SyncComponent extends React.Component {
                 }}>
                     {this.state.walletHeight} / {this.state.networkHeight} - {this.state.percent}%
                 </Animatable.Text>
+                <Text style={{
+                    color: this.state.status === 'error' ? '#e05252' : this.props.screenProps.theme.slightlyMoreVisibleColour,
+                    fontSize: 12,
+                    marginTop: 4,
+                }}>
+                    {this.statusText()}
+                </Text>
                 <ProgressBar
                     progress={this.state.progress}
                     style={{justifyContent: 'flex-end', alignItems: 'center', width: 300, marginTop: 10}}
