@@ -13,7 +13,7 @@ describe('XTE network identity', () => {
         expect(Config.addressPrefix).toBe(1334);
         expect(Config.uriPrefix).toBe('xte://');
         expect(Config.appName).toBe('XTE');
-        expect(Config.appVersion).toBe('v1.020.3');
+        expect(Config.appVersion).toBe('v1.020.4');
     });
 
     test('default daemon is the TLS node, not a cache API', () => {

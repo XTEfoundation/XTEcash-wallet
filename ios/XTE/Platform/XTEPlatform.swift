@@ -190,13 +190,14 @@ final class XTEPlatform: NSObject {
 // MARK: - Payment notification actions
 
 @objc(XTEPaymentNotifications)
-final class PaymentNotifications: NSObject {
+public final class PaymentNotifications: NSObject {
     static let category = "WALLET_PAYMENT"
     static let actionShowTransactions = "SHOW_TRANSACTIONS"
     static let actionShowReceive = "SHOW_RECEIVE"
 
+    /// Public so the generated XTE-Swift.h exposes it (the app has no bridging header).
     /// Called from AppDelegate at launch, and before each payment notification.
-    @objc static func installCategory() {
+    @objc public static func installCategory() {
         let center = UNUserNotificationCenter.current()
         let show = UNNotificationAction(identifier: actionShowTransactions, title: "Show transactions", options: [.foreground])
         let receive = UNNotificationAction(identifier: actionShowReceive, title: "Show receive QR", options: [.foreground])
@@ -210,13 +211,13 @@ final class PaymentNotifications: NSObject {
     }
 
     /// Route URL for a tapped payment notification, or nil when it is not ours.
-    @objc(routeURLForResponse:) static func routeURL(for response: UNNotificationResponse) -> URL? {
+    @objc(routeURLForResponse:) public static func routeURL(for response: UNNotificationResponse) -> URL? {
         guard response.notification.request.content.categoryIdentifier == category else { return nil }
         return (response.actionIdentifier == actionShowReceive ? AppRoute.receive : AppRoute.transactions).url
     }
 
     /// Route URL for a Handoff activity, or nil when it is not ours.
-    @objc(routeURLForActivity:) static func routeURL(forActivity activity: NSUserActivity) -> URL? {
+    @objc(routeURLForActivity:) public static func routeURL(forActivity activity: NSUserActivity) -> URL? {
         if activity.activityType == SharedConfig.receiveActivityType { return AppRoute.receive.url }
         if activity.activityType == SharedConfig.sendActivityType {
             if let uri = activity.userInfo?["uri"] as? String, let url = URL(string: uri) { return url }
@@ -226,7 +227,7 @@ final class PaymentNotifications: NSObject {
     }
 
     /// Static quick actions (Info.plist UIApplicationShortcutItems) carry the route in "url".
-    @objc(routeURLForShortcut:) static func routeURL(forShortcut item: UIApplicationShortcutItem) -> URL? {
+    @objc(routeURLForShortcut:) public static func routeURL(forShortcut item: UIApplicationShortcutItem) -> URL? {
         if let s = item.userInfo?["url"] as? String, let url = URL(string: s) { return url }
         switch item.type {
         case "io.traaitt.wallet.receive": return AppRoute.receive.url
@@ -236,7 +237,7 @@ final class PaymentNotifications: NSObject {
         }
     }
 
-    @objc static func activateWatch() {
+    @objc public static func activateWatch() {
         WatchBridge.shared.activate()
     }
 }
@@ -246,8 +247,8 @@ final class PaymentNotifications: NSObject {
 /// Hands a route URL to React Native: live via Linking's "url" event, and kept for
 /// consumePendingRoute() in case JS was not listening yet (cold start).
 @objc(XTERouteDispatcher)
-final class RouteDispatcher: NSObject {
-    @objc static func open(_ url: URL) {
+public final class RouteDispatcher: NSObject {
+    @objc public static func open(_ url: URL) {
         let d = UserDefaults.standard
         d.set(url.absoluteString, forKey: "XTEPendingRoute")
         d.set(Date().timeIntervalSince1970, forKey: "XTEPendingRouteAt")
