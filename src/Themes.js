@@ -10,7 +10,7 @@ export const Themes = {
         backgroundColour: '#fff0f5',
 
         /**
-         * The primary colour used by the wallet, for TurtleCoin this is green
+         * The primary colour used by the wallet
          */
         primaryColour: '#191919',
 
@@ -80,7 +80,7 @@ export const Themes = {
         backgroundColour: '#191919',
 
         /**
-         * The primary colour used by the wallet, for TurtleCoin this is green
+         * The primary colour used by the wallet
          */
         primaryColour: '#fff0f5',
 

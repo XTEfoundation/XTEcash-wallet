@@ -44,24 +44,24 @@ extern "C" jint JNI_OnLoad(JavaVM *vm, void *reserved) {
         return -1;
     }
 
-    KEY_OUTPUT = (jclass) env->NewGlobalRef(env->FindClass("com/traaittcashmobile/KeyOutput"));
+    KEY_OUTPUT = (jclass) env->NewGlobalRef(env->FindClass("io/traaitt/osx/KeyOutput"));
     KEY_OUTPUT_CONST = env->GetMethodID(KEY_OUTPUT, "<init>", "(Ljava/lang/String;JJ)V");
     KEY_OUTPUT_KEY = env->GetFieldID(KEY_OUTPUT, "key", "Ljava/lang/String;");
     KEY_OUTPUT_AMOUNT = env->GetFieldID(KEY_OUTPUT, "amount", "J");
     KEY_OUTPUT_GLOBAL_INDEX = env->GetFieldID(KEY_OUTPUT, "globalIndex", "J");
 
-    RAW_TRANSACTION = (jclass) env->NewGlobalRef(env->FindClass("com/traaittcashmobile/RawTransaction"));
-    RAW_TRANSACTION_CONST = env->GetMethodID(RAW_TRANSACTION, "<init>", "([Lcom/traaittcashmobile/KeyOutput;Ljava/lang/String;Ljava/lang/String;)V");
-    RAW_TRANSACTION_KEY_OUTPUTS = env->GetFieldID(RAW_TRANSACTION, "keyOutputs", "[Lcom/traaittcashmobile/KeyOutput;");
+    RAW_TRANSACTION = (jclass) env->NewGlobalRef(env->FindClass("io/traaitt/osx/RawTransaction"));
+    RAW_TRANSACTION_CONST = env->GetMethodID(RAW_TRANSACTION, "<init>", "([Lio/traaitt/osx/KeyOutput;Ljava/lang/String;Ljava/lang/String;)V");
+    RAW_TRANSACTION_KEY_OUTPUTS = env->GetFieldID(RAW_TRANSACTION, "keyOutputs", "[Lio/traaitt/osx/KeyOutput;");
     RAW_TRANSACTION_HASH = env->GetFieldID(RAW_TRANSACTION, "hash", "Ljava/lang/String;");
     RAW_TRANSACTION_TRANSACTION_PUBLIC_KEY = env->GetFieldID(RAW_TRANSACTION, "transactionPublicKey", "Ljava/lang/String;");
 
-    WALLET_BLOCK_INFO = (jclass) env->NewGlobalRef(env->FindClass("com/traaittcashmobile/WalletBlockInfo"));
-    WALLET_BLOCK_INFO_CONST = env->GetMethodID(WALLET_BLOCK_INFO, "<init>", "(Lcom/traaittcashmobile/RawTransaction;[Lcom/traaittcashmobile/RawTransaction;)V");
-    WALLET_BLOCK_INFO_COINBASE_TRANSACTION = env->GetFieldID(WALLET_BLOCK_INFO, "coinbaseTransaction", "Lcom/traaittcashmobile/RawTransaction;");
-    WALLET_BLOCK_INFO_TRANSACTIONS = env->GetFieldID(WALLET_BLOCK_INFO, "transactions", "[Lcom/traaittcashmobile/RawTransaction;");
+    WALLET_BLOCK_INFO = (jclass) env->NewGlobalRef(env->FindClass("io/traaitt/osx/WalletBlockInfo"));
+    WALLET_BLOCK_INFO_CONST = env->GetMethodID(WALLET_BLOCK_INFO, "<init>", "(Lio/traaitt/osx/RawTransaction;[Lio/traaitt/osx/RawTransaction;)V");
+    WALLET_BLOCK_INFO_COINBASE_TRANSACTION = env->GetFieldID(WALLET_BLOCK_INFO, "coinbaseTransaction", "Lio/traaitt/osx/RawTransaction;");
+    WALLET_BLOCK_INFO_TRANSACTIONS = env->GetFieldID(WALLET_BLOCK_INFO, "transactions", "[Lio/traaitt/osx/RawTransaction;");
 
-    TRANSACTION_INPUT = (jclass) env->NewGlobalRef(env->FindClass("com/traaittcashmobile/TransactionInput"));
+    TRANSACTION_INPUT = (jclass) env->NewGlobalRef(env->FindClass("io/traaitt/osx/TransactionInput"));
     TRANSACTION_INPUT_CONST = env->GetMethodID(TRANSACTION_INPUT, "<init>", "(Ljava/lang/String;JJJLjava/lang/String;Ljava/lang/String;)V");
     TRANSACTION_INPUT_KEY_IMAGE = env->GetFieldID(TRANSACTION_INPUT, "keyImage", "Ljava/lang/String;");
     TRANSACTION_INPUT_AMOUNT = env->GetFieldID(TRANSACTION_INPUT, "amount", "J");
@@ -69,15 +69,15 @@ extern "C" jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     TRANSACTION_INPUT_GLOBAL_OUTPUT_INDEX = env->GetFieldID(TRANSACTION_INPUT, "globalOutputIndex", "J");
     TRANSACTION_INPUT_KEY = env->GetFieldID(TRANSACTION_INPUT, "key", "Ljava/lang/String;");
 
-    SPEND_KEY = (jclass) env->NewGlobalRef(env->FindClass("com/traaittcashmobile/SpendKey"));
+    SPEND_KEY = (jclass) env->NewGlobalRef(env->FindClass("io/traaitt/osx/SpendKey"));
     SPEND_KEY_CONST = env->GetMethodID(SPEND_KEY, "<init>", "(Ljava/lang/String;Ljava/lang/String;)V");
     SPEND_KEY_PUBLIC_KEY = env->GetFieldID(SPEND_KEY, "publicKey", "Ljava/lang/String;");
     SPEND_KEY_PRIVATE_KEY = env->GetFieldID(SPEND_KEY, "privateKey", "Ljava/lang/String;");
 
-    INPUT_MAP = (jclass) env->NewGlobalRef(env->FindClass("com/traaittcashmobile/InputMap"));
-    INPUT_MAP_CONST = env->GetMethodID(INPUT_MAP, "<init>", "(Ljava/lang/String;Lcom/traaittcashmobile/TransactionInput;)V");
+    INPUT_MAP = (jclass) env->NewGlobalRef(env->FindClass("io/traaitt/osx/InputMap"));
+    INPUT_MAP_CONST = env->GetMethodID(INPUT_MAP, "<init>", "(Ljava/lang/String;Lio/traaitt/osx/TransactionInput;)V");
     INPUT_MAP_PUBLIC_SPEND_KEY = env->GetFieldID(INPUT_MAP, "publicSpendKey", "Ljava/lang/String;");
-    INPUT_MAP_TRANSACTION_INPUT = env->GetFieldID(INPUT_MAP, "input", "Lcom/traaittcashmobile/TransactionInput;");
+    INPUT_MAP_TRANSACTION_INPUT = env->GetFieldID(INPUT_MAP, "input", "Lio/traaitt/osx/TransactionInput;");
 
     JAVA_STRING = (jclass) env->NewGlobalRef(env->FindClass("java/lang/String"));
 
@@ -85,7 +85,7 @@ extern "C" jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 }
 
 extern "C" JNIEXPORT jobjectArray JNICALL
-Java_com_traaittcashmobile_TurtleCoinModule_processBlockOutputsJNI(
+Java_io_traaitt_osx_XTEModule_processBlockOutputsJNI(
     JNIEnv *env,
     jobject instance,
     jobject jWalletBlockInfo,
@@ -107,7 +107,7 @@ Java_com_traaittcashmobile_TurtleCoinModule_processBlockOutputsJNI(
 }
 
 extern "C" JNIEXPORT jobjectArray JNICALL
-Java_com_traaittcashmobile_TurtleCoinModule_generateRingSignaturesJNI(
+Java_io_traaitt_osx_XTEModule_generateRingSignaturesJNI(
     JNIEnv *env,
     jobject instance,
     jstring jPrefixHash,
@@ -129,7 +129,7 @@ Java_com_traaittcashmobile_TurtleCoinModule_generateRingSignaturesJNI(
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_traaittcashmobile_TurtleCoinModule_checkRingSignatureJNI(
+Java_io_traaitt_osx_XTEModule_checkRingSignatureJNI(
     JNIEnv *env,
     jobject instance,
     jstring jPrefixHash,
@@ -150,7 +150,7 @@ Java_com_traaittcashmobile_TurtleCoinModule_checkRingSignatureJNI(
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_traaittcashmobile_TurtleCoinModule_generateKeyDerivationJNI(
+Java_io_traaitt_osx_XTEModule_generateKeyDerivationJNI(
     JNIEnv *env,
     jobject instance,
     jstring jTransactionPublicKey,
@@ -167,7 +167,7 @@ Java_com_traaittcashmobile_TurtleCoinModule_generateKeyDerivationJNI(
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_traaittcashmobile_TurtleCoinModule_generateKeyImageJNI(
+Java_io_traaitt_osx_XTEModule_generateKeyImageJNI(
     JNIEnv *env,
     jobject instance,
     jstring jPublicEphemeral,
@@ -184,7 +184,7 @@ Java_com_traaittcashmobile_TurtleCoinModule_generateKeyImageJNI(
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_traaittcashmobile_TurtleCoinModule_deriveSecretKeyJNI(
+Java_io_traaitt_osx_XTEModule_deriveSecretKeyJNI(
     JNIEnv *env,
     jobject instance,
     jstring jDerivation,
@@ -202,7 +202,7 @@ Java_com_traaittcashmobile_TurtleCoinModule_deriveSecretKeyJNI(
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_traaittcashmobile_TurtleCoinModule_derivePublicKeyJNI(
+Java_io_traaitt_osx_XTEModule_derivePublicKeyJNI(
     JNIEnv *env,
     jobject instance,
     jstring jDerivation,
@@ -462,106 +462,5 @@ void hexStringToByteArray(const char* input, uint8_t* output, size_t outputLen)
     {
         output[i] = char2int(input[i*2]) * 16 +
                     char2int(input[(i*2) + 1]);
-    }
-}
-
-std::vector<std::tuple<Crypto::PublicKey, TransactionInput>> processBlockOutputs(
-    const WalletBlockInfo &block,
-    const Crypto::SecretKey &privateViewKey,
-    const std::unordered_map<Crypto::PublicKey, Crypto::SecretKey> &spendKeys,
-    const bool isViewWallet,
-    const bool processCoinbaseTransactions)
-{
-
-    std::vector<std::tuple<Crypto::PublicKey, TransactionInput>> inputs;
-
-    /* Process the coinbase tx if we're not skipping them for speed */
-    if (processCoinbaseTransactions && block.coinbaseTransaction)
-    {
-        processTransactionOutputs(
-            *block.coinbaseTransaction, privateViewKey, spendKeys, isViewWallet, inputs
-        );
-    }
-
-    /* Process the normal txs */
-    for (const auto &tx : block.transactions)
-    {
-        processTransactionOutputs(
-            tx, privateViewKey, spendKeys, isViewWallet, inputs
-        );
-    }
-
-    return inputs;
-}
-
-void processTransactionOutputs(
-    const RawTransaction &tx,
-    const Crypto::SecretKey &privateViewKey,
-    const std::unordered_map<Crypto::PublicKey, Crypto::SecretKey> &spendKeys,
-    const bool isViewWallet,
-    std::vector<std::tuple<Crypto::PublicKey, TransactionInput>> &inputs)
-{
-    Crypto::KeyDerivation derivation;
-
-    /* Generate the key derivation from the random tx public key, and our private
-       view key */
-    Crypto::generate_key_derivation(
-        tx.transactionPublicKey, privateViewKey, derivation
-    );
-
-    uint32_t outputIndex = 0;
-
-    for (const auto &output : tx.keyOutputs)
-    {
-        Crypto::PublicKey derivedSpendKey;
-
-        /* Derive the public spend key from the transaction, using the previous 
-           derivation */
-        Crypto::underive_public_key(
-            derivation, outputIndex, output.key, derivedSpendKey
-        );
-
-        /* See if the derived spend key matches any of our spend keys */
-        const auto ourPrivateSpendKey = spendKeys.find(derivedSpendKey);
-
-        /* If it does, the transaction belongs to us */
-        if (ourPrivateSpendKey != spendKeys.end())
-        {
-            TransactionInput input;
-
-            input.amount = output.amount;
-            input.transactionIndex = outputIndex;
-            input.globalOutputIndex = output.globalIndex;
-            input.key = output.key;
-            input.parentTransactionHash = tx.hash;
-
-            if (!isViewWallet)
-            {
-                /* Make a temporary key pair */
-                Crypto::PublicKey tmpPublicKey;
-                Crypto::SecretKey tmpSecretKey;
-
-                /* Get the tmp public key from the derivation, the index,
-                   and our public spend key */
-                Crypto::derive_public_key(
-                    derivation, outputIndex, derivedSpendKey, tmpPublicKey
-                );
-
-                /* Get the tmp private key from the derivation, the index,
-                   and our private spend key */
-                Crypto::derive_secret_key(
-                    derivation, outputIndex, ourPrivateSpendKey->second, tmpSecretKey
-                );
-
-                /* Get the key image from the tmp public and private key */
-                Crypto::generate_key_image(
-                    tmpPublicKey, tmpSecretKey, input.keyImage
-                );
-            }
-
-            inputs.emplace_back(derivedSpendKey, input);
-        }
-
-        outputIndex++;
     }
 }

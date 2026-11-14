@@ -122,7 +122,7 @@ export class CreateWalletScreen extends React.Component {
                     <BottomButton
                         title="Continue"
                         color={this.props.screenProps.theme.buttonThemeColour}
-                        onPress={() => this.props.navigation.navigate('Home')} 
+                        onPress={() => this.props.navigation.navigate('SecuritySetup', { setup: true })} 
                         {...this.props}
                     />
                 </View>

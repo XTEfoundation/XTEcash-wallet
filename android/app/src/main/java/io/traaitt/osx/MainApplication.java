@@ -7,6 +7,8 @@ import com.facebook.react.PackageList;
 import com.facebook.react.ReactApplication;
 import com.facebook.react.ReactNativeHost;
 import com.facebook.react.ReactPackage;
+import com.facebook.react.bridge.JSIModulePackage;
+import com.swmansion.reanimated.ReanimatedJSIModulePackage;
 import com.facebook.react.modules.network.OkHttpClientFactory;
 import com.facebook.react.modules.network.OkHttpClientProvider;
 import com.facebook.soloader.SoLoader;
@@ -45,6 +47,11 @@ public class MainApplication extends Application implements ReactApplication {
     protected String getJSMainModuleName() {
       return "index";
     }
+
+    @Override
+    protected JSIModulePackage getJSIModulePackage() {
+      return new ReanimatedJSIModulePackage();
+    }
   };
 
   @Override
@@ -57,8 +64,8 @@ public class MainApplication extends Application implements ReactApplication {
     super.onCreate();
     upgradeSecurityProvider();
 
-    /* XTE-v1.0.1 */
-    setUserAgent("XTE-v1.0.1");
+    /* Keep aligned with versionName in android/app/build.gradle */
+    setUserAgent("XTE-v" + BuildConfig.VERSION_NAME);
 
     SoLoader.init(this, /* native exopackage */ false);
   }

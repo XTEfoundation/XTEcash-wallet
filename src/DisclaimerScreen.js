@@ -3,6 +3,7 @@
 // Please see the included LICENSE file for more information.
 
 import React from 'react';
+import { HapticSwitch } from './Feedback';
 
 import { View, Text, Switch } from 'react-native';
 
@@ -53,7 +54,7 @@ export class DisclaimerScreen extends React.Component {
                     </Text>
 
                     {Config.devFeePercentage > 0 && <View style={{ flexDirection: 'row', marginRight: 20, marginLeft: 25, marginBottom: 20 }}>
-                        <Switch
+                        <HapticSwitch
                             value={this.state.feeAccepted}
                             onValueChange={(value) => {
                                 this.setState({
@@ -74,7 +75,7 @@ export class DisclaimerScreen extends React.Component {
                     </View>}
 
                     <View style={{ flexDirection: 'row', marginRight: 20, marginLeft: 25, marginBottom: 20 }}>
-                        <Switch
+                        <HapticSwitch
                             value={this.state.keyOwnershipAccepted}
                             onValueChange={(value) => {
                                 this.setState({
@@ -96,7 +97,7 @@ export class DisclaimerScreen extends React.Component {
                     </View>
 
                     <View style={{ flexDirection: 'row', marginRight: 20, marginLeft: 25, marginBottom: 20 }}>
-                        <Switch
+                        <HapticSwitch
                             value={this.state.warrantyAccepted}
                             onValueChange={(value) => {
                                 this.setState({

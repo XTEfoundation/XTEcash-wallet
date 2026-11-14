@@ -8,10 +8,17 @@ import * as _ from 'lodash';
 
 import Config from './Config';
 
-/* Manually comparing to TurtleCoin to try and prevent getting errors reported
-   for forks... */
-/* DO NOT CHANGE THIS LINE WITHOUT ALSO ALTERING THE Sentry.config() LINE - See readme and sentry docs. */
-const sentryIsEnabled = !__DEV__ && Config.coinName === 'TurtleCoin';
+/**
+ * SENTRY_DSN is inlined at bundle time (see babel.config.js).
+ * Leave it unset to keep reporting off. Do not commit a DSN.
+ */
+function readSentryDsn() {
+    const value = process.env.SENTRY_DSN;
+    return typeof value === 'string' ? value.trim() : '';
+}
+
+const sentryDsn = readSentryDsn();
+const sentryIsEnabled = !__DEV__ && sentryDsn.startsWith('https://');
 
 export function reportCaughtException(err) {
     /* Sentry doesn't properly report arbitary objects. Convert to string if
@@ -30,9 +37,8 @@ export function reportCaughtException(err) {
 
 export function initSentry() {
     if (sentryIsEnabled) {
-        /* CHANGE THIS IF YOU ARE FORKING! */
-        Sentry.init({ 
-          dsn: 'https://8ecf138e1d1e4d558178be3f2b5e1925@sentry.io/1411753', 
+        Sentry.init({
+            dsn: sentryDsn,
         });
 
         Sentry.setRelease('io.traaitt.osx-' + Config.appVersion);

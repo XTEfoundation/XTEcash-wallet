@@ -5,6 +5,7 @@
 import * as _ from 'lodash';
 
 import React from 'react';
+import { haptic } from './Feedback';
 
 import { Platform, View, Clipboard, Text } from 'react-native';
 
@@ -98,6 +99,7 @@ export class CopyButton extends React.Component {
                     title='Copy'
                     onPress={() => {
                         Clipboard.setString(this.props.data);
+                        haptic('success');
                         toastPopUp(this.props.name + ' copied');
                     }}
                     titleStyle={{
@@ -152,6 +154,7 @@ export class BottomButton extends React.Component {
                         backgroundColor: this.props.screenProps.theme.disabledColour,
                     }}
                     {...this.props}
+                    onPress={this.props.onPress && ((...a) => { haptic('light'); this.props.onPress(...a); })}
                     title={this.props.title.toUpperCase()}
                 />
             </View>

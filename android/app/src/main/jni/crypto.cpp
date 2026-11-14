@@ -5,6 +5,8 @@
 // 
 // Please see the included LICENSE file for more information.
 
+#include <cstring>
+
 #include "crypto.h"
 #include "hash.h"
 #include "Varint.h"

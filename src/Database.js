@@ -6,7 +6,7 @@ import SQLite from 'react-native-sqlite-storage';
 
 import * as _ from 'lodash';
 
-import { AsyncStorage } from 'react-native';
+import AsyncStorage from '@react-native-community/async-storage';
 
 import Config from './Config';
 import Constants from './Constants';
@@ -14,6 +14,8 @@ import Constants from './Constants';
 import { Globals } from './Globals';
 
 import { reportCaughtException } from './Sentry';
+
+import { sealWalletData, unsealWalletData, loadSecurityPrefs } from './Security';
 
 /* Use promise based API instead of callback based */
 SQLite.enablePromise(true);
@@ -68,7 +70,23 @@ async function saveWallet(wallet) {
     });
 }
 
+/* Reads the stored wallet and opens the hardware vault if it is sealed. */
 export async function loadWallet() {
+    const [data, err] = await loadWalletRaw();
+
+    if (err || data === undefined) {
+        return [data, err];
+    }
+
+    try {
+        return [await unsealWalletData(data), undefined];
+    } catch (unsealError) {
+        reportCaughtException(unsealError);
+        return [undefined, unsealError];
+    }
+}
+
+async function loadWalletRaw() {
     try {
         let [data] = await database.executeSql(
             `SELECT
@@ -246,7 +264,7 @@ async function createTables(DB) {
                 ?
             )`,
             [
-                Config.defaultDaemon.getConnectionString(),
+                Config.defaultNode,
             ],
         );
 
@@ -262,7 +280,7 @@ async function createTables(DB) {
                 WHERE
                     id = 0`,
                 [
-                    Config.defaultDaemon.getConnectionString(),
+                    Config.defaultNode,
                 ],
             );
         } else if (dbVersion === 1) {
@@ -274,7 +292,7 @@ async function createTables(DB) {
                 WHERE
                     id = 0`,
                 [
-                    Config.defaultDaemon.getConnectionString(),
+                    Config.defaultNode,
                 ],
             );
         }
@@ -287,6 +305,9 @@ async function createTables(DB) {
 
 export async function openDB() {
     try {
+        /* Needed before the first save: decides whether the wallet is sealed */
+        await loadSecurityPrefs();
+
         database = await SQLite.openDatabase({
             name: 'data.DB',
             location: 'default',
@@ -425,7 +446,7 @@ export async function loadPayeeDataFromDatabase() {
 
 export async function saveToDatabase(wallet) {
     try {
-        await saveWallet(wallet.toJSONString());
+        await saveWallet(await sealWalletData(wallet.toJSONString()));
         await setHaveWallet(true);
     } catch (err) {
         reportCaughtException(err);
@@ -452,6 +473,15 @@ export async function haveWallet() {
 export async function setHaveWallet(haveWallet) {
     try {
         await AsyncStorage.setItem(Config.coinName + 'HaveWallet', haveWallet.toString());
+
+        if (!haveWallet) {
+            /* Drop the background sync view key and view-only copy too. */
+            await AsyncStorage.multiRemove([
+                Config.coinName + 'BgSync.viewSeed',
+                Config.coinName + 'BgSync.viewWallet',
+                Config.coinName + 'BgSync.notified',
+            ]);
+        }
     } catch (error) {
         reportCaughtException(error);
         Globals.logger.addLogMessage('Failed to save have wallet status: ' + error);

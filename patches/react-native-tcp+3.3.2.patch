@@ -1,0 +1,66 @@
+diff --git a/node_modules/react-native-tcp/android/build.gradle b/node_modules/react-native-tcp/android/build.gradle
+index 0000000..1111111 100644
+--- a/node_modules/react-native-tcp/android/build.gradle
++++ b/node_modules/react-native-tcp/android/build.gradle
+@@ -2,25 +2,14 @@
+     rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+ }
+ 
+-buildscript {
+-    repositories {
+-        jcenter()
+-    }
+-
+-    dependencies {
+-        classpath 'com.android.tools.build:gradle:1.2.3'
+-    }
+-}
+-
+ apply plugin: 'com.android.library'
+ 
+ android {
+-    compileSdkVersion safeExtGet('compileSdkVersion', 23)
+-    buildToolsVersion safeExtGet('buildToolsVersion', '23.0.1')
++    compileSdkVersion safeExtGet('compileSdkVersion', 28)
+ 
+     defaultConfig {
+         minSdkVersion safeExtGet('minSdkVersion', 16)
+-        targetSdkVersion safeExtGet('targetSdkVersion', 22)
++        targetSdkVersion safeExtGet('targetSdkVersion', 28)
+         versionCode 1
+         versionName "0.2.0"
+     }
+@@ -44,6 +33,6 @@
+ }
+ 
+ dependencies {
+-    compile 'com.facebook.react:react-native:+'
+-    compile 'com.koushikdutta.async:androidasync:2.1.6'
++    implementation 'com.facebook.react:react-native:+'
++    implementation 'com.koushikdutta.async:androidasync:2.1.6'
+ }
+diff --git a/node_modules/react-native-tcp/android/src/main/java/com/peel/react/TcpSockets.java b/node_modules/react-native-tcp/android/src/main/java/com/peel/react/TcpSockets.java
+index 0000000..1111111 100644
+--- a/node_modules/react-native-tcp/android/src/main/java/com/peel/react/TcpSockets.java
++++ b/node_modules/react-native-tcp/android/src/main/java/com/peel/react/TcpSockets.java
+@@ -5,7 +5,7 @@
+ 
+ package com.peel.react;
+ 
+-import android.support.annotation.Nullable;
++import androidx.annotation.Nullable;
+ import android.util.Base64;
+ 
+ import com.facebook.common.logging.FLog;
+diff --git a/node_modules/react-native-tcp/android/src/main/java/com/peel/react/TcpSocketManager.java b/node_modules/react-native-tcp/android/src/main/java/com/peel/react/TcpSocketManager.java
+index 0000000..1111111 100644
+--- a/node_modules/react-native-tcp/android/src/main/java/com/peel/react/TcpSocketManager.java
++++ b/node_modules/react-native-tcp/android/src/main/java/com/peel/react/TcpSocketManager.java
+@@ -1,6 +1,6 @@
+ package com.peel.react;
+ 
+-import android.support.annotation.Nullable;
++import androidx.annotation.Nullable;
+ import android.util.SparseArray;
+ 
+ import com.koushikdutta.async.AsyncNetworkSocket;

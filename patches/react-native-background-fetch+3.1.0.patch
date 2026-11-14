@@ -1,0 +1,23 @@
+diff --git a/node_modules/react-native-background-fetch/android/build.gradle b/node_modules/react-native-background-fetch/android/build.gradle
+index e4470f3..0888316 100644
+@@ -18,14 +18,14 @@
+     }
+ }
+ 
+-repositories{
+-    jcenter()
+-    maven {
+-        url './libs'
+-    }
++repositories {
++    maven { url "$projectDir/libs" }
++    mavenCentral()
++    google()
+ }
+ 
+ dependencies {
+     implementation "com.facebook.react:react-native:${safeExtGet('reactNativeVersion', '+')}"
+-    implementation(group: 'com.transistorsoft', name:'tsbackgroundfetch', version: '+')
++    // 3.1.0 implements the 0.4.5 callback. A floating version resolves 4.x and fails to compile.
++    implementation(group: 'com.transistorsoft', name: 'tsbackgroundfetch', version: '0.4.5')
+ }

@@ -74,7 +74,9 @@ export async function makePostRequest(endpoint, body) {
     } = body;
 
     const protocol = this.sslDetermined ? (this.ssl ? 'https' : 'http') : 'https';
-    const url = `${protocol}://${this.host}:${this.port}/getwalletsyncdata`;
+    const url = this.urlFor
+        ? this.urlFor(protocol, '/getwalletsyncdata')
+        : `${protocol}://${this.host}:${this.port}/getwalletsyncdata`;
 
     /* This is being executed within the Daemon module, so we can get access
        to it's class with `this` */
@@ -99,7 +101,9 @@ export async function makePostRequest(endpoint, body) {
             startTimestamp,
             blockCount,
             this.config.scanCoinbaseTransactions,
-            `http://${this.host}:${this.port}/getwalletsyncdata`,
+            this.urlFor
+                ? this.urlFor('http', '/getwalletsyncdata')
+                : `http://${this.host}:${this.port}/getwalletsyncdata`,
         );
 
         if (data.error) {

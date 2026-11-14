@@ -3,6 +3,7 @@
 // Please see the included LICENSE file for more information.
 
 import React from 'react';
+import { PressScale, haptic } from './Feedback';
 
 import FontAwesome from 'react-native-vector-icons/FontAwesome5';
 
@@ -15,11 +16,13 @@ import PushNotification from 'react-native-push-notification';
 import { NavigationActions, NavigationEvents } from 'react-navigation';
 
 import {
-    Text, View, Image, TouchableOpacity, PushNotificationIOS,
+    Text, View, Image, TouchableOpacity, Button,
     AppState, Platform, Linking, ScrollView, RefreshControl, Dimensions,
 } from 'react-native';
 
 import NetInfo from "@react-native-community/netinfo";
+
+import PushNotificationIOS from '@react-native-community/push-notification-ios';
 
 import { prettyPrintAmount, LogLevel } from 'traaittcash-wallet-backend';
 
@@ -32,8 +35,15 @@ import { saveToDatabase } from './Database';
 import { Globals, initGlobals } from './Globals';
 import { reportCaughtException } from './Sentry';
 import { processBlockOutputs, makePostRequest } from './NativeCode';
-import { initBackgroundSync } from './BackgroundSync';
+import {
+    initBackgroundSync, rememberWalletForBackground, claimNotification, maybeStartRestoreService,
+} from './BackgroundSync';
+import {
+    publishWidgetData, updateDynamicShortcuts, showPaymentNotification, trackOutgoing, updateOutgoing,
+    isWideLayout, consumePendingRoute, advertiseReceive, shareAddress,
+} from './Platform';
 import { CopyButton, OneLineText } from './SharedComponents';
+import { syncNow } from './SyncNow';
 import { coinsToFiat, getCoinPriceFromAPI } from './Currency';
 
 async function init(navigation) {
@@ -43,6 +53,22 @@ async function init(navigation) {
     Globals.wallet.on('incomingtx', (transaction) => {
         sendNotification(transaction);
     });
+
+    /* Widgets, Quick Settings tile, watch and outgoing-transaction notifications */
+    Globals.wallet.on('heightchange', () => {
+        publishWidgetData();
+        updateOutgoing();
+    });
+
+    Globals.wallet.on('createdtx', (transaction) => {
+        if (transaction) {
+            trackOutgoing(transaction.hash, transaction.totalAmount());
+        }
+    });
+
+    /* "Pay <contact>" launcher shortcuts follow the address book */
+    updateDynamicShortcuts();
+    Globals.updatePayeeFunctions.push(updateDynamicShortcuts);
 
     Globals.wallet.on('deadnode', () => {
         toastPopUp('Node may be offline, check the settings screen to swap nodes', false);
@@ -59,13 +85,13 @@ async function init(navigation) {
         Globals.backgroundSaveTimer = setInterval(backgroundSave, Config.walletSaveFrequency);
     }
 
-    /* Use our native C++ func to process blocks, provided we're on android */
-    /* TODO: iOS support */
-    if (Platform.OS === 'android') {
-        Globals.wallet.setBlockOutputProcessFunc(processBlockOutputs);
-    }
+    /* Use our native C++ func to process blocks (android + iOS XTE module) */
+    Globals.wallet.setBlockOutputProcessFunc(processBlockOutputs);
 
     initGlobals();
+
+    /* View key + height for the view-only background sync. */
+    rememberWalletForBackground(Globals.wallet);
 
     PushNotification.configure({
         onNotification: handleNotification,
@@ -86,13 +112,22 @@ async function init(navigation) {
     if (url) {
         handleURI(url, navigation);
     }
+
+    /* iOS: quick action / notification action / Handoff that cold-started the app */
+    const pending = await consumePendingRoute();
+
+    if (pending && pending !== url) {
+        handleURI(pending, navigation);
+    }
+
+    advertiseReceive(Globals.wallet.getPrimaryAddress());
 }
 
 function handleNotification(notification) {
     notification.finish(PushNotificationIOS.FetchResult.NoData);
 }
 
-export function sendNotification(transaction) {
+export async function sendNotification(transaction) {
     /* Don't show notifications if disabled */
     if (!Globals.preferences.notificationsEnabled) {
         return;
@@ -100,6 +135,16 @@ export function sendNotification(transaction) {
 
     /* Don't show notifications in foreground */
     if (AppState.currentState !== 'background') {
+        return;
+    }
+
+    /* The view-only background sync and the wallet may both see a payment. */
+    if (!await claimNotification(transaction.hash)) {
+        return;
+    }
+
+    /* Android: payments channel, "Show transactions" / "Show receive QR" actions */
+    if (showPaymentNotification(transaction)) {
         return;
     }
 
@@ -134,6 +179,7 @@ export class MainScreen extends React.Component {
         this.handleAppStateChange = this.handleAppStateChange.bind(this);
         this.handleNetInfoChange = this.handleNetInfoChange.bind(this);
         this.unsubscribe = () => {};
+        this.handleDimensions = this.handleDimensions.bind(this);
 
         const [unlockedBalance, lockedBalance] = Globals.wallet.getBalance();
 
@@ -141,6 +187,7 @@ export class MainScreen extends React.Component {
             addressOnly: false,
             unlockedBalance,
             lockedBalance,
+            window: Dimensions.get('window'),
         }
 
         this.updateBalance();
@@ -174,10 +221,19 @@ export class MainScreen extends React.Component {
             lockedBalance,
             coinValue,
         });
+
+        publishWidgetData(true);
     }
 
-    handleURI(url) {
-        handleURI(url, this.props.navigation);
+    /* Fold/unfold and multi-window resize the window without recreating the activity. */
+    handleDimensions({ window }) {
+        this.setState({ window });
+    }
+
+    handleURI(event) {
+        /* Delivered live: drop the copy kept for a cold start. */
+        consumePendingRoute();
+        handleURI(event, this.props.navigation);
     }
 
     async resumeSyncing() {
@@ -196,6 +252,7 @@ export class MainScreen extends React.Component {
         if (appState === 'active') {
             this.updateBalance();
             this.resumeSyncing();
+            maybeStartRestoreService();
         }
     }
 
@@ -216,26 +273,50 @@ export class MainScreen extends React.Component {
         this.unsubscribe = NetInfo.addEventListener(this.handleNetInfoChange);
         AppState.addEventListener('change', this.handleAppStateChange);
         Linking.addEventListener('url', this.handleURI);
+        this.dimensionsSubscription = Dimensions.addEventListener('change', this.handleDimensions);
         initBackgroundSync();
+        maybeStartRestoreService();
     }
 
     componentWillUnmount() {
         NetInfo.removeEventListener('connectionChange', this.handleNetInfoChange);
         AppState.removeEventListener('change', this.handleAppStateChange);
         Linking.removeEventListener('url', this.handleURI);
+        if (this.dimensionsSubscription && this.dimensionsSubscription.remove) {
+            this.dimensionsSubscription.remove();
+        }
         this.unsubscribe();
     }
 
+    /* Pull to refresh: a real sync (gateway, REST fallback); the spinner stays until it
+       has finished. A pull while a sync runs joins it instead of cancelling it. */
     async refresh() {
-        this.setState({
-            refreshing: true,
-        });
-
-        await this.updateBalance();
-
-        this.setState({
-            refreshing: false,
-        });
+        if (this.refreshPromise) {
+            return this.refreshPromise;
+        }
+        this.setState({ refreshing: true });
+        this.refreshPromise = (async () => {
+            try {
+                /* Paused by "limit data" or a node swap: syncNow syncs directly. */
+                await syncNow();
+            } finally {
+                try {
+                    await this.updateBalance();
+                } catch (err) {
+                    /* price API offline: balance is still updated below */
+                }
+                const [unlockedBalance, lockedBalance] = Globals.wallet.getBalance();
+                publishWidgetData(true);
+                this.refreshPromise = undefined;
+                this.setState({
+                    refreshing: false,
+                    unlockedBalance,
+                    lockedBalance,
+                    txVersion: (this.state.txVersion || 0) + 1,
+                });
+            }
+        })();
+        return this.refreshPromise;
     }
 
     render() {
@@ -246,16 +327,22 @@ export class MainScreen extends React.Component {
             <ScrollView
                 refreshControl={
                     <RefreshControl
-                        refreshing={this.state.refreshing}
+                        refreshing={!!this.state.refreshing}
                         onRefresh={this.refresh}
-                        title='Updating coin price...'
+                        title='Syncing...'
+                        titleColor={this.props.screenProps.theme.slightlyMoreVisibleColour}
+                        tintColor={this.props.screenProps.theme.primaryColour}
+                        colors={[this.props.screenProps.theme.primaryColour]}
+                        progressBackgroundColor={this.props.screenProps.theme.backgroundColour}
                     />
                 }
                 style={{
                     backgroundColor: this.props.screenProps.theme.backgroundColour,
                 }}
-                contentContainerstyle={{
-                    flex: 1,
+                /* Content is exactly one screen high: keep the pull gesture alive anyway. */
+                alwaysBounceVertical={true}
+                contentContainerStyle={{
+                    flexGrow: 1,
                 }}
             >
                 <NavigationEvents
@@ -263,11 +350,17 @@ export class MainScreen extends React.Component {
                         if (payload && payload.action && payload.action.params && payload.action.params.reloadBalance) {
                             this.updateBalance();
                         }
+                        /* Receive widget, tile, shortcut or notification action */
+                        if (payload && payload.action && payload.action.params && payload.action.params.showAddress) {
+                            this.setState({ addressOnly: true });
+                        }
                     }}
                 />
+                <View style={{ flexDirection: isWideLayout(this.state.window) ? 'row' : 'column' }}>
                 <View style={{
                     justifyContent: 'space-around',
-                    height: Dimensions.get('window').height - 73,
+                    height: this.state.window.height - 73,
+                    flex: isWideLayout(this.state.window) ? 1 : undefined,
                 }}>
                     <View style={{ 
                         height: '20%', 
@@ -285,13 +378,23 @@ export class MainScreen extends React.Component {
                         />
                     </View>
 
-                    <TouchableOpacity onPress={() => this.setState({ addressOnly: !this.state.addressOnly })}>
+                    <PressScale hapticKind='selection' onPress={() => this.setState({ addressOnly: !this.state.addressOnly })}>
                         <AddressComponent {...this.props}/>
-                    </TouchableOpacity>
+                    </PressScale>
 
                     <View style={{ opacity: this.state.addressOnly ? 0 : 100, flex: 1 }}>
                         <SyncComponent {...this.props}/>
                     </View>
+                </View>
+                {/* Second pane on unfolded foldables / tablets */}
+                {isWideLayout(this.state.window) && !this.state.addressOnly &&
+                    <RecentTransactionsPane
+                        version={this.state.txVersion}
+                        height={this.state.window.height - 73}
+                        unlockedBalance={this.state.unlockedBalance}
+                        {...this.props}
+                    />
+                }
                 </View>
             </ScrollView>
         );
@@ -343,6 +446,14 @@ class AddressComponent extends React.Component {
                     name='Address'
                     {...this.props}
                 />
+
+                <View style={{ marginTop: 5 }}>
+                    <Button
+                        title='Share'
+                        onPress={() => shareAddress(this.state.address)}
+                        color={this.props.screenProps.theme.buttonThemeColour}
+                    />
+                </View>
             </View>
         );
     }
@@ -431,6 +542,49 @@ class BalanceComponent extends React.Component {
 }
 
 /**
+ * Right-hand pane of the two-pane layout (width >= 600 dp): the latest transactions.
+ */
+class RecentTransactionsPane extends React.Component {
+    render() {
+        let txs = [];
+        try {
+            txs = Globals.wallet.getTransactions(0, 12, false);
+        } catch (err) {
+            txs = [];
+        }
+        const theme = this.props.screenProps.theme;
+        return(
+            <View style={{ flex: 1, height: this.props.height, paddingTop: 40, paddingHorizontal: 16 }}>
+                <Text style={{ color: theme.primaryColour, fontSize: 20, fontWeight: 'bold', marginBottom: 10 }}>
+                    Recent transactions
+                </Text>
+                {txs.length === 0 &&
+                    <Text style={{ color: theme.slightlyMoreVisibleColour }}>No transactions yet</Text>
+                }
+                {txs.map((tx) => {
+                    const amount = tx.totalAmount();
+                    return(
+                        <PressScale
+                            key={tx.hash}
+                            hapticKind='selection'
+                            onPress={() => this.props.navigation.navigate('Transactions')}
+                            style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}
+                        >
+                            <Text style={{ color: theme.slightlyMoreVisibleColour }}>
+                                {tx.timestamp ? new Date(tx.timestamp * 1000).toLocaleString() : 'Unconfirmed'}
+                            </Text>
+                            <Text style={{ color: amount >= 0 ? theme.secondaryColour : theme.primaryColour, fontWeight: 'bold' }}>
+                                {amount >= 0 ? '+' : ''}{prettyPrintAmount(amount, Config)}
+                            </Text>
+                        </PressScale>
+                    );
+                })}
+            </View>
+        );
+    }
+}
+
+/**
  * Sync status at bottom of screen
  */
 class SyncComponent extends React.Component {
@@ -445,9 +599,17 @@ class SyncComponent extends React.Component {
             networkHeight,
             progress: 0,
             percent: '0.00',
+            /* 'syncing' | 'synced' | 'error' - derived from heights and node events. */
+            status: 'syncing',
+            lastSynced: undefined,
+            connected: true,
         };
 
         this.updateSyncStatus = this.updateSyncStatus.bind(this);
+        this.poll = this.poll.bind(this);
+        this.onDisconnect = () => this.setState({ connected: false, status: 'error' });
+        this.onConnect = () => this.setState({ connected: true }, this.poll);
+        this.onSync = () => this.poll();
 
         this.syncRef = (ref) => this.sync = ref;
     }
@@ -483,23 +645,67 @@ class SyncComponent extends React.Component {
 
         const justSynced = progress === 1 && this.state.progress !== 1;
 
+        /* Synced = wallet caught up with the node (one block of slack for the
+           height poll interval). Error = the node is unreachable ('disconnect'). */
+        const caughtUp = networkHeight > 0 && walletHeight + 1 >= networkHeight;
+        let status = caughtUp ? 'synced' : 'syncing';
+        if (!this.state.connected) {
+            status = 'error';
+        }
+
         this.setState({
             walletHeight,
             localHeight,
             networkHeight,
             progress,
             percent: percent.toFixed(2),
-        }, () => { if (justSynced) { this.sync.bounce(800) } });
+            status,
+            lastSynced: caughtUp ? new Date() : this.state.lastSynced,
+        }, () => { if (justSynced && this.sync) { this.sync.bounce(800) } });
+    }
+
+    /* 'heightchange' only fires when blocks arrive: also poll, so the state is
+       right after pull-to-refresh, background sync, gateway/REST fallback and
+       when the wallet is already synced on open. */
+    poll() {
+        if (Globals.wallet) {
+            const [walletHeight, localHeight, networkHeight] = Globals.wallet.getSyncStatus();
+            this.updateSyncStatus(walletHeight, localHeight, networkHeight);
+        }
     }
 
     componentDidMount() {
         Globals.wallet.on('heightchange', this.updateSyncStatus);
+        Globals.wallet.on('disconnect', this.onDisconnect);
+        Globals.wallet.on('connect', this.onConnect);
+        Globals.wallet.on('sync', this.onSync);
+        Globals.wallet.on('desync', this.onSync);
+        this.poll();
+        this.pollTimer = setInterval(this.poll, 3000);
     }
 
     componentWillUnmount() {
+        clearInterval(this.pollTimer);
         if (Globals.wallet) {
             Globals.wallet.removeListener('heightchange', this.updateSyncStatus);
+            Globals.wallet.removeListener('disconnect', this.onDisconnect);
+            Globals.wallet.removeListener('connect', this.onConnect);
+            Globals.wallet.removeListener('sync', this.onSync);
+            Globals.wallet.removeListener('desync', this.onSync);
         }
+    }
+
+    statusText() {
+        const last = this.state.lastSynced
+            ? ` · ${this.state.lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+            : '';
+        if (this.state.status === 'synced') {
+            return `Synced${last}`;
+        }
+        if (this.state.status === 'error') {
+            return `Node not reachable - retrying${last}`;
+        }
+        return 'Syncing…';
     }
 
     render() {
@@ -510,6 +716,13 @@ class SyncComponent extends React.Component {
                 }}>
                     {this.state.walletHeight} / {this.state.networkHeight} - {this.state.percent}%
                 </Animatable.Text>
+                <Text style={{
+                    color: this.state.status === 'error' ? '#e05252' : this.props.screenProps.theme.slightlyMoreVisibleColour,
+                    fontSize: 12,
+                    marginTop: 4,
+                }}>
+                    {this.statusText()}
+                </Text>
                 <ProgressBar
                     progress={this.state.progress}
                     style={{justifyContent: 'flex-end', alignItems: 'center', width: 300, marginTop: 10}}
@@ -529,6 +742,7 @@ async function backgroundSave() {
     try {
         await saveToDatabase(Globals.wallet);
         Globals.logger.addLogMessage('Save complete.');
+        rememberWalletForBackground(Globals.wallet);
     } catch (err) {
         reportCaughtException(err);
         Globals.logger.addLogMessage('Failed to background save: ' + err);

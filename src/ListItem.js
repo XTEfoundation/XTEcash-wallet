@@ -4,11 +4,12 @@
 
 import * as React from 'react';
 
-import { StyleSheet } from 'react-native';
+import { Animated, StyleSheet } from 'react-native';
 
 import { ListItem as RneListItem, ListItemProps } from 'react-native-elements';
 
 import { legacyRNElementsColors } from './Styles';
+import { haptic, usePressScale } from './Feedback';
 
 const styles = StyleSheet.create({
     listItemContainer: {
@@ -22,12 +23,31 @@ const styles = StyleSheet.create({
 });
 
 /* https://github.com/react-native-training/react-native-elements/issues/1565 */
-const ListItem = props => (
-    <RneListItem
-        containerStyle={[styles.listItemContainer, props.containerStyle]}
-        underlayColor='transparent'
-        {...props}
-    />
-);
+/* Tappable rows get a subtle press-scale and a selection tick. */
+const ListItem = props => {
+    const press = usePressScale(0.98);
+    if (!props.onPress) {
+        return (
+            <RneListItem
+                containerStyle={[styles.listItemContainer, props.containerStyle]}
+                underlayColor='transparent'
+                {...props}
+            />
+        );
+    }
+    const { onPress } = props;
+    return (
+        <Animated.View style={press.style}>
+            <RneListItem
+                containerStyle={[styles.listItemContainer, props.containerStyle]}
+                underlayColor='transparent'
+                {...props}
+                onPressIn={press.onPressIn}
+                onPressOut={press.onPressOut}
+                onPress={(...a) => { haptic('selection'); onPress(...a); }}
+            />
+        </Animated.View>
+    );
+};
 
 export default ListItem;

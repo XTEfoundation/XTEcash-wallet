@@ -5,6 +5,7 @@
 import * as _ from 'lodash';
 
 import React from 'react';
+import { PopOnChange } from './Feedback';
 
 import TextTicker from 'react-native-text-ticker';
 
@@ -23,9 +24,10 @@ import {
 
 import NetInfo from "@react-native-community/netinfo";
 
-import { prettyPrintAmount, Daemon } from 'traaittcash-wallet-backend';
+import { prettyPrintAmount } from 'traaittcash-wallet-backend';
 
 import Config from './Config';
+import { formatListedNode, sameNode } from './NodeAddress';
 import ListItem from './ListItem';
 import List from './ListContainer';
 import Constants from './Constants';
@@ -35,6 +37,10 @@ import { Globals } from './Globals';
 import { Authenticate } from './Authenticate';
 import { SeedComponent, CopyButton } from './SharedComponents';
 import { savePreferencesToDatabase, setHaveWallet } from './Database';
+import { DEFAULT_BACKGROUND_PREFS, loadBackgroundPrefs, setBackgroundPref, initBackgroundSync } from './BackgroundSync';
+import {
+    DEFAULT_PLATFORM_PREFS, setPlatformPref, dynamicColorAvailable, openLanguageSettings, requestPinWidget,
+} from './Platform';
 
 import {
     navigateWithDisabledBack, toastPopUp, getArrivalTime,
@@ -202,7 +208,7 @@ export class DisableDozeScreen extends React.Component {
     }
 
     async updateDozeStatus() {
-        const dozeDisabled = await NativeModules.TurtleCoin.isDozeDisabled();
+        const dozeDisabled = await NativeModules.XTE.isDozeDisabled();
 
         this.setState({
             dozeDisabled,
@@ -268,7 +274,7 @@ export class DisableDozeScreen extends React.Component {
                                 color: '#3399ff',
                                 fontSize: 16,
                             }}
-                            onPress={() => NativeModules.TurtleCoin.navigateToBatteryOptimizationScreen()}
+                            onPress={() => NativeModules.XTE.navigateToBatteryOptimizationScreen()}
                         >
                             Click here to open the Battery optimization menu.
                         </Text>
@@ -528,6 +534,21 @@ export class SwapCurrencyScreen extends React.Component {
     }
 }
 
+function sortNodes(nodes) {
+    return _.orderBy(nodes || [], ['name'], ['asc']);
+}
+
+function nodeSubtitle(item) {
+    const endpoint = `${item.url}:${item.port}`;
+    const transport = item.ssl ? 'SSL' : 'TCP';
+
+    if (item.fee && item.fee.amount != null && item.availability != null) {
+        return `Node TX fee: ${prettyPrintAmount(item.fee.amount, Config)}, Uptime: ${item.availability}%, ${endpoint} (${transport})`;
+    }
+
+    return `${endpoint} (${transport})`;
+}
+
 export class SwapNodeScreen extends React.Component {
     static navigationOptions = {
         title: 'Available Nodes',
@@ -540,13 +561,7 @@ export class SwapNodeScreen extends React.Component {
         this.swapNode = this.swapNode.bind(this);
 
         this.state = {
-            /* Sort by online nodes, then uptime (highest first), then fee
-            * (lowest first), then name */
-            nodes: _.orderBy(
-                Globals.daemons,
-                ['online',  'availability', 'fee.amount',   'name'],
-                ['desc',    'desc',         'asc',          'asc']
-            ),
+            nodes: sortNodes(Globals.daemons),
 
             selectedNode: Globals.preferences.node,
 
@@ -565,13 +580,7 @@ export class SwapNodeScreen extends React.Component {
 
         this.setState((prevState) => ({
             refreshing: false,
-
-            nodes: _.orderBy(
-                Globals.daemons,
-                ['online',  'availability', 'fee.amount',   'name'],
-                ['desc',    'desc',         'asc',          'asc']
-            ),
-
+            nodes: sortNodes(Globals.daemons),
             forceUpdate: prevState.forceUpdate + 1,
         }));
     }
@@ -579,7 +588,7 @@ export class SwapNodeScreen extends React.Component {
     async swapNode(node) {
         toastPopUp('Swapping node...');
 
-        Globals.preferences.node = node.url + ':' + node.port;
+        Globals.preferences.node = formatListedNode(node);
 
         this.setState((prevState) => ({
             selectedNode: Globals.preferences.node,
@@ -624,7 +633,7 @@ export class SwapNodeScreen extends React.Component {
                                 renderItem={({ item }) => (
                                     <ListItem
                                         title={item.name}
-                                        subtitle={`Node TX fee: ${prettyPrintAmount(item.fee.amount, Config)}, Uptime: ${item.availability}%`}
+                                        subtitle={nodeSubtitle(item)}
                                         leftIcon={
                                             <View style={{
                                                 width: 50,
@@ -636,24 +645,24 @@ export class SwapNodeScreen extends React.Component {
                                             }}>
                                                 <Text style={[Styles.centeredText, { 
                                                     fontSize: 15,
-                                                    color: item.online ? '#33ff33' : '#ff0000',
+                                                    color: item.online === true ? '#33ff33' : item.online === false ? '#ff0000' : this.props.screenProps.theme.slightlyMoreVisibleColour,
                                                 }]}>
-                                                    {item.online ? 'Online' : 'Offline'}
+                                                    {item.online === true ? 'Online' : item.online === false ? 'Offline' : 'Node'}
                                                 </Text>
                                             </View>
                                         }
                                         titleStyle={{
-                                            color: this.state.selectedNode === item.url + ':' + item.port
+                                            color: sameNode(this.state.selectedNode, item)
                                                 ? this.props.screenProps.theme.primaryColour
                                                 : this.props.screenProps.theme.slightlyMoreVisibleColour,
                                         }}
                                         subtitleStyle={{
-                                            color: this.state.selectedNode === item.url + ':' + item.port
+                                            color: sameNode(this.state.selectedNode, item)
                                                 ? this.props.screenProps.theme.primaryColour
                                                 : this.props.screenProps.theme.slightlyMoreVisibleColour,
                                         }}
                                         onPress={async () => {
-                                            if (!item.online) {
+                                            if (item.online === false) {
                                                 Alert.alert(
                                                     'Use offline node?',
                                                     'Are you sure you want to attempt to connect to a node which is reporting as offline?',
@@ -710,7 +719,27 @@ export class SettingsScreen extends React.Component {
             darkMode: Globals.preferences.theme === 'darkMode',
             authConfirmation: Globals.preferences.authConfirmation,
             autoOptimize: Globals.preferences.autoOptimize,
+            backgroundPrefs: Globals.backgroundPrefs || DEFAULT_BACKGROUND_PREFS,
+            platformPrefs: Globals.platformPrefs || DEFAULT_PLATFORM_PREFS,
         }
+    }
+
+    componentDidMount() {
+        loadBackgroundPrefs().then((backgroundPrefs) => this.setState({ backgroundPrefs }));
+    }
+
+    async togglePlatformPref(name, message) {
+        const value = !this.state.platformPrefs[name];
+        const platformPrefs = await setPlatformPref(name, value);
+        this.setState({ platformPrefs });
+        toastPopUp(`${message} ${value ? 'enabled' : 'disabled'}`);
+    }
+
+    async toggleBackgroundPref(name, message) {
+        const value = !this.state.backgroundPrefs[name];
+        const backgroundPrefs = await setBackgroundPref(name, value);
+        this.setState({ backgroundPrefs });
+        toastPopUp(`${message} ${value ? 'enabled' : 'disabled'}`);
     }
 
     render() {
@@ -733,6 +762,17 @@ export class SettingsScreen extends React.Component {
                                 },
                                 onClick: () => {
                                     this.props.navigation.navigate('Faq');
+                                },
+                            },
+                            {
+                                title: 'Security & Backup',
+                                description: 'Hardware key, auto-lock, iCloud / Google backup, hardware wallet',
+                                icon: {
+                                    iconName: 'shield-lock',
+                                    IconType: MaterialCommunityIcons,
+                                },
+                                onClick: () => {
+                                    this.props.navigation.navigate('Security');
                                 },
                             },
                             {
@@ -843,6 +883,9 @@ export class SettingsScreen extends React.Component {
                                         Globals.wallet.start();
                                     }
 
+                                    /* Background sync: Wi-Fi only constraint */
+                                    initBackgroundSync();
+
                                     toastPopUp(Globals.preferences.limitData ? 'Data limiting enabled' : 'Data limiting disabled');
                                     savePreferencesToDatabase(Globals.preferences);
                                 },
@@ -951,6 +994,107 @@ export class SettingsScreen extends React.Component {
                                 checkbox: true,
                                 checked: this.state.notifsEnabled,
                             },
+                            {
+                                title: 'Background Sync',
+                                description: 'Sync and notify about payments while closed (view key only)',
+                                icon: {
+                                    iconName: 'sync',
+                                    IconType: MaterialIcons,
+                                },
+                                onClick: () => this.toggleBackgroundPref('enabled', 'Background sync'),
+                                checkbox: true,
+                                checked: this.state.backgroundPrefs.enabled,
+                            },
+                            {
+                                title: 'Background Sync Only When Charging',
+                                description: 'Save battery: only sync in the background while charging',
+                                icon: {
+                                    iconName: 'battery-charging',
+                                    IconType: MaterialCommunityIcons,
+                                },
+                                onClick: () => this.toggleBackgroundPref('chargingOnly', 'Charging only sync'),
+                                checkbox: true,
+                                checked: this.state.backgroundPrefs.chargingOnly,
+                            },
+                            ...(Platform.OS === 'android' ? [{
+                                title: 'Keep Restoring In Background',
+                                description: 'Shows a sync notification while a long restore runs',
+                                icon: {
+                                    iconName: 'cloud-sync',
+                                    IconType: MaterialCommunityIcons,
+                                },
+                                onClick: () => this.toggleBackgroundPref('restoreService', 'Background restore'),
+                                checkbox: true,
+                                checked: this.state.backgroundPrefs.restoreService,
+                            }] : []),
+                            {
+                                title: 'Protect Address Book',
+                                description: Platform.OS === 'ios'
+                                    ? 'Face ID / Touch ID or passcode to open the address book'
+                                    : 'Fingerprint, face or screen lock to open the address book',
+                                icon: { iconName: 'contacts', IconType: MaterialCommunityIcons },
+                                onClick: () => this.togglePlatformPref('protectAddressBook', 'Address book protection'),
+                                checkbox: true,
+                                checked: this.state.platformPrefs.protectAddressBook,
+                            },
+                            {
+                                title: 'Biometric Send Confirmation',
+                                description: Platform.OS === 'ios'
+                                    ? 'Face ID / Touch ID or passcode before a transaction is sent'
+                                    : 'Fingerprint, face or screen lock before a transaction is sent',
+                                icon: { iconName: 'fingerprint', IconType: MaterialCommunityIcons },
+                                onClick: () => this.togglePlatformPref('biometricSend', 'Biometric send confirmation'),
+                                checkbox: true,
+                                checked: this.state.platformPrefs.biometricSend,
+                            },
+                            {
+                                title: 'Hide Balance In Widgets',
+                                description: Platform.OS === 'ios'
+                                    ? 'Widgets, Lock Screen and Apple Watch show no amounts'
+                                    : 'Widgets, Quick Settings tile and watch show no amounts',
+                                icon: { iconName: 'eye-off', IconType: MaterialCommunityIcons },
+                                onClick: () => this.togglePlatformPref('hideBalanceInWidgets', 'Hidden widget balance'),
+                                checkbox: true,
+                                checked: this.state.platformPrefs.hideBalanceInWidgets,
+                            },
+                            ...(Platform.OS === 'android' ? [
+                                {
+                                    title: 'Add Balance Widget',
+                                    description: 'Place the balance widget on your home screen',
+                                    icon: { iconName: 'widgets', IconType: MaterialCommunityIcons },
+                                    onClick: async () => {
+                                        const ok = await requestPinWidget('balance');
+                                        if (!ok) {
+                                            toastPopUp('Long-press the home screen and choose Widgets to add it');
+                                        }
+                                    },
+                                },
+                                {
+                                    title: 'Add Receive QR Widget',
+                                    description: 'Place your receive QR code on your home screen',
+                                    icon: { iconName: 'qrcode', IconType: MaterialCommunityIcons },
+                                    onClick: async () => {
+                                        const ok = await requestPinWidget('receive');
+                                        if (!ok) {
+                                            toastPopUp('Long-press the home screen and choose Widgets to add it');
+                                        }
+                                    },
+                                },
+                                ...(dynamicColorAvailable() ? [{
+                                    title: 'Material You Colours',
+                                    description: 'Use your wallpaper colours (Android 12+)',
+                                    icon: { iconName: 'palette', IconType: MaterialCommunityIcons },
+                                    onClick: () => this.togglePlatformPref('dynamicColor', 'Material You colours'),
+                                    checkbox: true,
+                                    checked: this.state.platformPrefs.dynamicColor,
+                                }] : []),
+                                {
+                                    title: 'App Language',
+                                    description: 'Choose the language for this app (Android 13+)',
+                                    icon: { iconName: 'translate', IconType: MaterialCommunityIcons },
+                                    onClick: () => openLanguageSettings(),
+                                },
+                            ] : []),
                             {
                                 title: 'Scan Coinbase Transactions',
                                 description: 'Enable this if you have solo mined',
@@ -1091,7 +1235,9 @@ export class SettingsScreen extends React.Component {
                                 }
                                 rightIcon={item.checkbox &&
                                     <View style={{width: 30, alignItems: 'center', justifyContent: 'center', marginRight: 10}}>
-                                        <MaterialIcons name={item.checked ? 'check-box' : 'check-box-outline-blank'} size={25} color={this.props.screenProps.theme.primaryColour}/>
+                                        <PopOnChange active={!!item.checked}>
+                                            <MaterialIcons name={item.checked ? 'check-box' : 'check-box-outline-blank'} size={25} color={this.props.screenProps.theme.primaryColour}/>
+                                        </PopOnChange>
                                     </View>
                                 }
                                 onPress={item.onClick}
@@ -1118,6 +1264,7 @@ function deleteWallet(navigation) {
                     clearInterval(Globals.backgroundSaveTimer);
 
                     await setHaveWallet(false);
+                    require('./Platform').clearWidgetData();
 
                     Globals.wallet.stop();
 

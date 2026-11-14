@@ -20,6 +20,9 @@ public class XTEPackage implements ReactPackage {
         List<NativeModule> modules = new ArrayList<>();
 
         modules.add(new XTEModule(reactContext));
+        modules.add(new XTESecurityModule(reactContext));
+        modules.add(new XTEBackgroundModule(reactContext));
+        modules.add(new XTEPlatformModule(reactContext));
 
         return modules;
     }

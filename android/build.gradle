@@ -7,6 +7,7 @@ buildscript {
         targetSdkVersion = 34
         supportLibVersion = "28.0.0"
         kotlinVersion = "1.7.10"
+        walletApplicationId = "io.traaitt.osx"
     }
     repositories {
         google()

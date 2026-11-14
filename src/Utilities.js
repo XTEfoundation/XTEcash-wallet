@@ -67,19 +67,48 @@ export function prettyPrintDate(date) {
     return date.format('D MMM, YYYY HH:mm');
 }
 
-/** 
- * Gets the approximate height of the blockchain, based on the launch timestamp
+/**
+ * Gets the approximate height of the blockchain at a date.
+ *
+ * Interpolates between real (height, timestamp) checkpoints from
+ * Config.scanHeightCheckpoints. Past the last checkpoint it extrapolates at
+ * three times the target block time, so the guess stays at or below the
+ * real height: scanning a few extra blocks is cheap, starting past the
+ * wallet's first transaction loses it.
  */
 export function getApproximateBlockHeight(date) {
-    const difference = (date - Config.chainLaunchTimestamp) / 1000;
+    const time = date.getTime() / 1000;
+    const checkpoints = Config.scanHeightCheckpoints || [];
 
-    let blockHeight = Math.floor(difference / Config.blockTargetTime);
-
-    if (blockHeight < 0) {
-        blockHeight = 0;
+    if (checkpoints.length === 0) {
+        const difference = (date - Config.chainLaunchTimestamp) / 1000;
+        return Math.max(0, Math.floor(difference / (Config.blockTargetTime * 3)));
     }
 
-    return blockHeight;
+    if (time <= checkpoints[0][1]) {
+        return 0;
+    }
+
+    for (let i = 0; i + 1 < checkpoints.length; i++) {
+        const [h1, t1] = checkpoints[i];
+        const [h2, t2] = checkpoints[i + 1];
+
+        if (time < t2) {
+            return Math.max(0, Math.floor(h1 + (h2 - h1) * (time - t1) / (t2 - t1)));
+        }
+    }
+
+    const [lastHeight, lastTime] = checkpoints[checkpoints.length - 1];
+
+    return Math.floor(lastHeight + (time - lastTime) / (Config.blockTargetTime * 3));
+}
+
+/**
+ * Safety margin (in blocks, about one day) subtracted from date based scan
+ * heights, so a wallet created early on the picked day is still found.
+ */
+export function scanHeightMargin() {
+    return Math.ceil((24 * 60 * 60) / Config.blockTargetTime);
 }
 
 /**
@@ -93,7 +122,7 @@ export function dateToScanHeight(date) {
         jsDate = now;
     }
 
-    return getApproximateBlockHeight(jsDate);
+    return Math.max(0, getApproximateBlockHeight(jsDate) - scanHeightMargin());
 }
 
 export function getArrivalTime() {
@@ -107,6 +136,12 @@ export function getArrivalTime() {
 }
 
 export function handleURI(data, navigation) {
+    /* Widgets, shortcuts, the Quick Settings tile and notifications (src/Platform.js) */
+    const { handleRoute } = require('./Platform');
+    if (handleRoute(data, navigation)) {
+        return;
+    }
+
     const result = parseURI(data);
 
     if (!result.valid) {
@@ -128,7 +163,7 @@ export function handleURI(data, navigation) {
 export function parseURI(qrData) {
     /* It's a URI, try and get the data from it */
     if (qrData.startsWith(Config.uriPrefix)) {
-        /* Remove the turtlecoin:// prefix */
+        /* Remove the xte:// prefix */
         let data = qrData.replace(Config.uriPrefix, '');
         let index = data.indexOf('?');
 

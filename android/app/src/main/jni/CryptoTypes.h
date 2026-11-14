@@ -7,6 +7,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
+#include <functional>
+#include <iterator>
 
 struct EllipticCurvePoint
 {

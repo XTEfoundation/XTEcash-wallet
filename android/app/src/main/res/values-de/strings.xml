@@ -1,0 +1,43 @@
+<resources>
+    <string name="notification_channel_description">Mitteilungen der Wallet</string>
+
+    <string name="action_send">Senden</string>
+    <string name="action_receive">Empfangen</string>
+    <string name="action_show_transactions">Transaktionen zeigen</string>
+    <string name="action_show_receive">Empfangs-QR zeigen</string>
+
+    <string name="widget_wallet_title">%1$s Wallet</string>
+    <string name="widget_no_wallet">App öffnen, um die Wallet einzurichten</string>
+    <string name="widget_no_payments">Noch keine Zahlungen</string>
+    <string name="widget_last_in">Erhalten %1$s · %2$s</string>
+    <string name="widget_last_out">Gesendet %1$s · %2$s</string>
+    <string name="widget_updated">Aktualisiert %1$s</string>
+    <string name="widget_syncing">Synchronisiert %1$d / %2$d</string>
+    <string name="widget_balance_description">Kontostand und letzte Zahlung vom letzten Sync</string>
+    <string name="widget_receive_description">Deine Empfangsadresse als QR-Code</string>
+
+    <string name="tile_label">%1$s Empfangen</string>
+    <string name="tile_receive">Tippen für deinen QR-Code</string>
+
+    <string name="channel_payments">Eingehende Zahlungen</string>
+    <string name="channel_payments_description">Eine Zahlung ist in deiner Wallet eingegangen</string>
+    <string name="channel_sends">Ausgehende Transaktionen</string>
+    <string name="channel_sends_description">Fortschritt einer gesendeten Transaktion bis zur Bestätigung</string>
+    <string name="channel_sync">Wallet-Sync</string>
+    <string name="channel_sync_description">Wird angezeigt, während die Wallet im Hintergrund aufholt</string>
+    <string name="notification_hidden_amount">Entsperren, um den Betrag zu sehen</string>
+    <string name="send_pending_title">%1$s wird gesendet</string>
+    <string name="send_confirmed_title">%1$s gesendet</string>
+    <string name="sync_notification_title">%1$s synchronisiert</string>
+    <string name="sync_notification_text">Holt den Stand des Netzwerks auf</string>
+
+    <string name="shortcut_send_short">Senden</string>
+    <string name="shortcut_send_long">Zahlung senden</string>
+    <string name="shortcut_receive_short">Empfangen</string>
+    <string name="shortcut_receive_long">Meinen Empfangs-QR-Code zeigen</string>
+    <string name="shortcut_transactions_short">Transaktionen</string>
+    <string name="shortcut_transactions_long">Meine Transaktionen zeigen</string>
+    <string name="shortcut_addressbook_short">Adressbuch</string>
+    <string name="shortcut_addressbook_long">Adressbuch öffnen</string>
+    <string name="shortcut_pay_contact">%1$s bezahlen</string>
+</resources>
