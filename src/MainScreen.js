@@ -37,6 +37,10 @@ import { processBlockOutputs, makePostRequest } from './NativeCode';
 import {
     initBackgroundSync, rememberWalletForBackground, claimNotification, maybeStartRestoreService,
 } from './BackgroundSync';
+import {
+    publishWidgetData, updateDynamicShortcuts, showPaymentNotification, trackOutgoing, updateOutgoing,
+    isWideLayout,
+} from './Platform';
 import { CopyButton, OneLineText } from './SharedComponents';
 import { coinsToFiat, getCoinPriceFromAPI } from './Currency';
 
@@ -47,6 +51,22 @@ async function init(navigation) {
     Globals.wallet.on('incomingtx', (transaction) => {
         sendNotification(transaction);
     });
+
+    /* Widgets, Quick Settings tile, watch and outgoing-transaction notifications */
+    Globals.wallet.on('heightchange', () => {
+        publishWidgetData();
+        updateOutgoing();
+    });
+
+    Globals.wallet.on('createdtx', (transaction) => {
+        if (transaction) {
+            trackOutgoing(transaction.hash, transaction.totalAmount());
+        }
+    });
+
+    /* "Pay <contact>" launcher shortcuts follow the address book */
+    updateDynamicShortcuts();
+    Globals.updatePayeeFunctions.push(updateDynamicShortcuts);
 
     Globals.wallet.on('deadnode', () => {
         toastPopUp('Node may be offline, check the settings screen to swap nodes', false);
@@ -112,6 +132,11 @@ export async function sendNotification(transaction) {
         return;
     }
 
+    /* Android: payments channel, "Show transactions" / "Show receive QR" actions */
+    if (showPaymentNotification(transaction)) {
+        return;
+    }
+
     PushNotification.localNotification({
         title: 'Incoming transaction received!',
         message: `You were sent ${prettyPrintAmount(transaction.totalAmount(), Config)}`,
@@ -143,6 +168,7 @@ export class MainScreen extends React.Component {
         this.handleAppStateChange = this.handleAppStateChange.bind(this);
         this.handleNetInfoChange = this.handleNetInfoChange.bind(this);
         this.unsubscribe = () => {};
+        this.handleDimensions = this.handleDimensions.bind(this);
 
         const [unlockedBalance, lockedBalance] = Globals.wallet.getBalance();
 
@@ -150,6 +176,7 @@ export class MainScreen extends React.Component {
             addressOnly: false,
             unlockedBalance,
             lockedBalance,
+            window: Dimensions.get('window'),
         }
 
         this.updateBalance();
@@ -183,6 +210,13 @@ export class MainScreen extends React.Component {
             lockedBalance,
             coinValue,
         });
+
+        publishWidgetData(true);
+    }
+
+    /* Fold/unfold and multi-window resize the window without recreating the activity. */
+    handleDimensions({ window }) {
+        this.setState({ window });
     }
 
     handleURI(url) {
@@ -226,6 +260,7 @@ export class MainScreen extends React.Component {
         this.unsubscribe = NetInfo.addEventListener(this.handleNetInfoChange);
         AppState.addEventListener('change', this.handleAppStateChange);
         Linking.addEventListener('url', this.handleURI);
+        this.dimensionsSubscription = Dimensions.addEventListener('change', this.handleDimensions);
         initBackgroundSync();
         maybeStartRestoreService();
     }
@@ -234,6 +269,9 @@ export class MainScreen extends React.Component {
         NetInfo.removeEventListener('connectionChange', this.handleNetInfoChange);
         AppState.removeEventListener('change', this.handleAppStateChange);
         Linking.removeEventListener('url', this.handleURI);
+        if (this.dimensionsSubscription && this.dimensionsSubscription.remove) {
+            this.dimensionsSubscription.remove();
+        }
         this.unsubscribe();
     }
 
@@ -274,11 +312,17 @@ export class MainScreen extends React.Component {
                         if (payload && payload.action && payload.action.params && payload.action.params.reloadBalance) {
                             this.updateBalance();
                         }
+                        /* Receive widget, tile, shortcut or notification action */
+                        if (payload && payload.action && payload.action.params && payload.action.params.showAddress) {
+                            this.setState({ addressOnly: true });
+                        }
                     }}
                 />
+                <View style={{ flexDirection: isWideLayout(this.state.window) ? 'row' : 'column' }}>
                 <View style={{
                     justifyContent: 'space-around',
-                    height: Dimensions.get('window').height - 73,
+                    height: this.state.window.height - 73,
+                    flex: isWideLayout(this.state.window) ? 1 : undefined,
                 }}>
                     <View style={{ 
                         height: '20%', 
@@ -303,6 +347,15 @@ export class MainScreen extends React.Component {
                     <View style={{ opacity: this.state.addressOnly ? 0 : 100, flex: 1 }}>
                         <SyncComponent {...this.props}/>
                     </View>
+                </View>
+                {/* Second pane on unfolded foldables / tablets */}
+                {isWideLayout(this.state.window) && !this.state.addressOnly &&
+                    <RecentTransactionsPane
+                        height={this.state.window.height - 73}
+                        unlockedBalance={this.state.unlockedBalance}
+                        {...this.props}
+                    />
+                }
                 </View>
             </ScrollView>
         );
@@ -436,6 +489,48 @@ class BalanceComponent extends React.Component {
                     >
                         {this.props.coinValue}
                     </Animatable.Text>
+            </View>
+        );
+    }
+}
+
+/**
+ * Right-hand pane of the two-pane layout (width >= 600 dp): the latest transactions.
+ */
+class RecentTransactionsPane extends React.Component {
+    render() {
+        let txs = [];
+        try {
+            txs = Globals.wallet.getTransactions(0, 12, false);
+        } catch (err) {
+            txs = [];
+        }
+        const theme = this.props.screenProps.theme;
+        return(
+            <View style={{ flex: 1, height: this.props.height, paddingTop: 40, paddingHorizontal: 16 }}>
+                <Text style={{ color: theme.primaryColour, fontSize: 20, fontWeight: 'bold', marginBottom: 10 }}>
+                    Recent transactions
+                </Text>
+                {txs.length === 0 &&
+                    <Text style={{ color: theme.slightlyMoreVisibleColour }}>No transactions yet</Text>
+                }
+                {txs.map((tx) => {
+                    const amount = tx.totalAmount();
+                    return(
+                        <TouchableOpacity
+                            key={tx.hash}
+                            onPress={() => this.props.navigation.navigate('Transactions')}
+                            style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}
+                        >
+                            <Text style={{ color: theme.slightlyMoreVisibleColour }}>
+                                {tx.timestamp ? new Date(tx.timestamp * 1000).toLocaleString() : 'Unconfirmed'}
+                            </Text>
+                            <Text style={{ color: amount >= 0 ? theme.secondaryColour : theme.primaryColour, fontWeight: 'bold' }}>
+                                {amount >= 0 ? '+' : ''}{prettyPrintAmount(amount, Config)}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
             </View>
         );
     }

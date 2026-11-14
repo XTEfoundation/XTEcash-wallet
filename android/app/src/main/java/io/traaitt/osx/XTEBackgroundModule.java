@@ -68,6 +68,19 @@ public class XTEBackgroundModule extends ReactContextBaseJavaModule {
         }
     }
 
+    /** Progress bar (and on Android 16 a Live Update chip) for the restore notification. */
+    @ReactMethod
+    public void updateRestoreProgress(String text, double walletHeight, double networkHeight) {
+        try {
+            Context ctx = getReactApplicationContext();
+            int max = networkHeight > 0 ? 1000 : 0;
+            int progress = networkHeight > 0 ? (int) Math.min(1000, Math.round(walletHeight * 1000 / networkHeight)) : 0;
+            NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+            nm.notify(WalletSyncService.NOTIFICATION_ID, WalletSyncService.buildNotification(ctx, text, progress, max));
+        } catch (Throwable ignored) {
+        }
+    }
+
     @ReactMethod
     public void stopRestoreService() {
         Context ctx = getReactApplicationContext();

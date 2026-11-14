@@ -35,6 +35,7 @@ import List from './ListContainer';
 import { Styles } from './Styles';
 import { Globals } from './Globals';
 import { Authenticate } from './Authenticate';
+import { sendNeedsBiometric, biometricAuth } from './Platform';
 import { Hr, BottomButton } from './SharedComponents';
 import { removeFee, toAtomic, fromAtomic, addFee } from './Fee';
 
@@ -1056,11 +1057,24 @@ export class ConfirmScreen extends React.Component {
                                 }
                             );
                         } else {
-                            /* Reset this stack to be on the transfer screen */
-                            this.props.navigation.dispatch(navigateWithDisabledBack('ChoosePayee'));
+                            const send = () => {
+                                /* Reset this stack to be on the transfer screen */
+                                this.props.navigation.dispatch(navigateWithDisabledBack('ChoosePayee'));
 
-                            /* Then send the actual transaction */
-                            this.props.navigation.navigate('SendTransaction', {...params});
+                                /* Then send the actual transaction */
+                                this.props.navigation.navigate('SendTransaction', {...params});
+                            };
+
+                            /* Android BiometricPrompt (fingerprint / face / screen lock) before sending */
+                            if (sendNeedsBiometric()) {
+                                biometricAuth('Confirm transaction', 'Send ' + prettyPrintAmount(params.amount.originalAtomic, Config)).then((ok) => {
+                                    if (ok) {
+                                        send();
+                                    }
+                                });
+                            } else {
+                                send();
+                            }
                         }
                     }}
                     {...this.props}

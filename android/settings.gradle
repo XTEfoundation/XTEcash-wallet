@@ -8,3 +8,5 @@ project(':react-native-background-fetch').projectDir = new File(rootProject.proj
 apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesSettingsGradle(settings)
 
 include ':app'
+// Wear OS companion (separate APK: ./gradlew :wear:assembleRelease)
+include ':wear'

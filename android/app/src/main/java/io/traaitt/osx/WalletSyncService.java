@@ -30,25 +30,23 @@ public class WalletSyncService extends HeadlessJsTaskService {
     static final String EXTRA_TEXT = "text";
 
     static Notification buildNotification(Context context, String text) {
-        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL_ID) == null) {
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Wallet sync", NotificationManager.IMPORTANCE_LOW);
-            channel.setDescription("Shown while the wallet catches up in the background");
-            nm.createNotificationChannel(channel);
-        }
+        return buildNotification(context, text, 0, 0);
+    }
+
+    /**
+     * Ongoing progress notification (progress/max in permille; max 0 = indeterminate).
+     * Android 16: ProgressStyle Live Update, see WalletNotifications.
+     */
+    static Notification buildNotification(Context context, String text, int progress, int max) {
+        WalletNotifications.ensureChannels(context);
         Intent open = new Intent(context, MainActivity.class);
         open.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         int flags = Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0;
         PendingIntent pi = PendingIntent.getActivity(context, 0, open, flags);
-        return new NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle(context.getString(R.string.app_name) + " is syncing")
-            .setContentText(text == null ? "Catching up with the network" : text)
-            .setSmallIcon(R.mipmap.ic_notification)
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setContentIntent(pi)
-            .build();
+        return WalletNotifications.progressNotification(context, CHANNEL_ID,
+            context.getString(R.string.sync_notification_title, context.getString(R.string.app_name)),
+            text == null ? context.getString(R.string.sync_notification_text) : text,
+            progress, max, true, pi);
     }
 
     @Override

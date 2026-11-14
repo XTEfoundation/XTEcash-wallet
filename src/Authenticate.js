@@ -443,6 +443,7 @@ export class ForgotPinScreen extends React.Component {
                     onPress={() => {
                         (async () => {
                             await setHaveWallet(false);
+                    require('./Platform').clearWidgetData();
 
                             await deleteUserPinCode();
 

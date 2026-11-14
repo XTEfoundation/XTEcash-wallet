@@ -550,7 +550,7 @@
 				INFOPLIST_FILE = XTE/Info.plist;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.020.3;
+				MARKETING_VERSION = 1.020.4;
 				TARGETED_DEVICE_FAMILY = 1;
 				USER_HEADER_SEARCH_PATHS = "$(inherited) $(SRCROOT)/../android/app/src/main/jni";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -580,7 +580,7 @@
 				INFOPLIST_FILE = XTE/Info.plist;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.020.3;
+				MARKETING_VERSION = 1.020.4;
 				TARGETED_DEVICE_FAMILY = 1;
 				USER_HEADER_SEARCH_PATHS = "$(inherited) $(SRCROOT)/../android/app/src/main/jni";
 				LD_RUNPATH_SEARCH_PATHS = (

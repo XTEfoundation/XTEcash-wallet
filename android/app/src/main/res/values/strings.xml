@@ -2,4 +2,49 @@
     <string name="app_name">XTE</string>
     <string name="notification_channel_name">XTE</string>
     <string name="notification_channel_description">XTE wallet notifications</string>
+
+    <!-- Per-app constants (XTCASH: XTCASH / xtcash / xtcashwallet) -->
+    <string name="wallet_ticker" translatable="false">XTE</string>
+    <string name="wallet_payment_scheme" translatable="false">xte</string>
+    <string name="wallet_route_scheme" translatable="false">xtewallet</string>
+
+    <string name="action_send">Send</string>
+    <string name="action_receive">Receive</string>
+    <string name="action_show_transactions">Show transactions</string>
+    <string name="action_show_receive">Show receive QR</string>
+
+    <string name="widget_wallet_title">%1$s Wallet</string>
+    <string name="widget_no_wallet">Open the app to set up your wallet</string>
+    <string name="widget_no_payments">No payments yet</string>
+    <string name="widget_last_in">Received %1$s · %2$s</string>
+    <string name="widget_last_out">Sent %1$s · %2$s</string>
+    <string name="widget_updated">Updated %1$s</string>
+    <string name="widget_syncing">Syncing %1$d / %2$d</string>
+    <string name="widget_balance_description">Balance and last payment from the last sync</string>
+    <string name="widget_receive_description">Your receive address as a QR code</string>
+
+    <string name="tile_label">%1$s Receive</string>
+    <string name="tile_receive">Tap for your QR code</string>
+
+    <string name="channel_payments">Incoming payments</string>
+    <string name="channel_payments_description">A payment arrived in your wallet</string>
+    <string name="channel_sends">Outgoing transactions</string>
+    <string name="channel_sends_description">Progress of a sent transaction until it is confirmed</string>
+    <string name="channel_sync">Wallet sync</string>
+    <string name="channel_sync_description">Shown while the wallet catches up in the background</string>
+    <string name="notification_hidden_amount">Unlock to see the amount</string>
+    <string name="send_pending_title">Sending %1$s</string>
+    <string name="send_confirmed_title">%1$s sent</string>
+    <string name="sync_notification_title">%1$s is syncing</string>
+    <string name="sync_notification_text">Catching up with the network</string>
+
+    <string name="shortcut_send_short">Send</string>
+    <string name="shortcut_send_long">Send a payment</string>
+    <string name="shortcut_receive_short">Receive</string>
+    <string name="shortcut_receive_long">Show my receive QR code</string>
+    <string name="shortcut_transactions_short">Transactions</string>
+    <string name="shortcut_transactions_long">Show my transactions</string>
+    <string name="shortcut_addressbook_short">Address book</string>
+    <string name="shortcut_addressbook_long">Open the address book</string>
+    <string name="shortcut_pay_contact">Pay %1$s</string>
 </resources>

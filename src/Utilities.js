@@ -136,6 +136,12 @@ export function getArrivalTime() {
 }
 
 export function handleURI(data, navigation) {
+    /* Widgets, shortcuts, the Quick Settings tile and notifications (src/Platform.js) */
+    const { handleRoute } = require('./Platform');
+    if (handleRoute(data, navigation)) {
+        return;
+    }
+
     const result = parseURI(data);
 
     if (!result.valid) {

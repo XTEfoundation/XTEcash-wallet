@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">XTE</string>
+    <string name="wallet_title">%1$s Wallet</string>
+    <string name="open_phone">Open the wallet on your phone</string>
+    <string name="updated">Updated %1$s</string>
+    <string name="syncing">Phone is syncing…</string>
+    <string name="tap_for_qr">Tap for receive QR</string>
+</resources>

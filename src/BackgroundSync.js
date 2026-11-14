@@ -442,6 +442,8 @@ async function syncViewWallet(budgetSeconds) {
 
 /* Lazy require: MainScreen imports this module. */
 function notifyIncoming(transaction) {
+    /* Widgets / tile / watch show it until the main wallet counts it. */
+    require('./Platform').notePendingIncoming(transaction.totalAmount());
     const { sendNotification } = require('./MainScreen');
     sendNotification(transaction);
 }
@@ -499,7 +501,11 @@ export async function restoreServiceTask() {
                 await saveToDatabase(Globals.wallet);
                 break;
             }
-            Native.updateRestoreService(restoreText());
+            if (Native.updateRestoreProgress) {
+                Native.updateRestoreProgress(restoreText(), walletHeight, networkHeight);
+            } else {
+                Native.updateRestoreService(restoreText());
+            }
         }
     } finally {
         restoreRunning = false;

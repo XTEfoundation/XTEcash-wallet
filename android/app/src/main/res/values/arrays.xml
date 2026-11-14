@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Assistant synonyms for the App Actions features in xml/shortcuts.xml -->
+    <string-array name="feature_send"><item>send</item><item>pay</item><item>send money</item><item>Senden</item><item>bezahlen</item></string-array>
+    <string-array name="feature_receive"><item>receive</item><item>address</item><item>QR code</item><item>Empfangen</item><item>Adresse</item></string-array>
+    <string-array name="feature_transactions"><item>transactions</item><item>history</item><item>Transaktionen</item><item>Verlauf</item></string-array>
+    <string-array name="feature_addressbook"><item>address book</item><item>contacts</item><item>Adressbuch</item><item>Kontakte</item></string-array>
+</resources>

@@ -7,8 +7,12 @@ import React from 'react';
 import SimpleLineIcons from 'react-native-vector-icons/SimpleLineIcons';
 
 import {
-    View, Text, ScrollView, FlatList, Platform, TouchableWithoutFeedback
+    View, Text, ScrollView, FlatList, Platform, TouchableWithoutFeedback, AppState,
 } from 'react-native';
+
+import { NavigationEvents } from 'react-navigation';
+
+import { addressBookNeedsAuth, biometricAuth } from './Platform';
 
 import {
     validateAddresses, WalletErrorCode, validatePaymentID,
@@ -33,7 +37,16 @@ export class RecipientsScreen extends React.Component {
         this.state = {
             payees: Globals.payees,
             index: 0,
+            /* BiometricPrompt protects the address book (Settings > Protect address book) */
+            authorized: !addressBookNeedsAuth() || Globals.addressBookUnlocked === true,
         }
+
+        this.handleAppStateChange = (state) => {
+            if (state === 'background') {
+                Globals.addressBookUnlocked = false;
+                this.setState({ authorized: !addressBookNeedsAuth() });
+            }
+        };
 
         Globals.updatePayeeFunctions.push(() => {
             this.setState(prevState => ({
@@ -43,7 +56,59 @@ export class RecipientsScreen extends React.Component {
         });
     }
 
+    componentDidMount() {
+        this.appStateSubscription = AppState.addEventListener('change', this.handleAppStateChange);
+    }
+
+    componentWillUnmount() {
+        if (this.appStateSubscription && this.appStateSubscription.remove) {
+            this.appStateSubscription.remove();
+        }
+    }
+
+    async unlock() {
+        if (!addressBookNeedsAuth() || Globals.addressBookUnlocked) {
+            this.setState({ authorized: true });
+            return;
+        }
+        if (this.authInProgress) {
+            return;
+        }
+        this.authInProgress = true;
+        const ok = await biometricAuth('Open address book', 'Confirm it is you');
+        this.authInProgress = false;
+        Globals.addressBookUnlocked = ok;
+        this.setState({ authorized: ok });
+    }
+
     render() {
+        if (!this.state.authorized) {
+            return(
+                <View style={{
+                    backgroundColor: this.props.screenProps.theme.backgroundColour,
+                    flex: 1,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}>
+                    <NavigationEvents onDidFocus={() => this.unlock()}/>
+                    <SimpleLineIcons
+                        name={'lock'}
+                        size={48}
+                        color={this.props.screenProps.theme.primaryColour}
+                    />
+                    <Text style={{
+                        color: this.props.screenProps.theme.primaryColour,
+                        fontSize: 16,
+                        marginTop: 16,
+                        marginBottom: 16,
+                    }}>
+                        The address book is locked
+                    </Text>
+                    <RNEButton title='Unlock' onPress={() => this.unlock()}/>
+                </View>
+            );
+        }
+
         const noPayeesComponent =
             <View style={{
                 width: '100%',

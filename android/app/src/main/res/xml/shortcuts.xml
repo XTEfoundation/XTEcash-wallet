@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher shortcuts and Google Assistant App Actions (OPEN_APP_FEATURE).
+     Routes are handled in src/Platform.js. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <capability android:name="actions.intent.OPEN_APP_FEATURE">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="io.traaitt.osx"
+            android:targetClass="io.traaitt.osx.MainActivity">
+            <url-template android:value="xtewallet://{feature}" />
+            <parameter android:name="feature" android:key="feature" />
+        </intent>
+    </capability>
+
+    <shortcut
+        android:shortcutId="send"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_send"
+        android:shortcutShortLabel="@string/shortcut_send_short"
+        android:shortcutLongLabel="@string/shortcut_send_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="io.traaitt.osx"
+            android:targetClass="io.traaitt.osx.MainActivity"
+            android:data="xtewallet://send" />
+        <capability-binding android:key="actions.intent.OPEN_APP_FEATURE">
+            <parameter-binding android:key="feature" android:value="@array/feature_send" />
+        </capability-binding>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="receive"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_receive"
+        android:shortcutShortLabel="@string/shortcut_receive_short"
+        android:shortcutLongLabel="@string/shortcut_receive_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="io.traaitt.osx"
+            android:targetClass="io.traaitt.osx.MainActivity"
+            android:data="xtewallet://receive" />
+        <capability-binding android:key="actions.intent.OPEN_APP_FEATURE">
+            <parameter-binding android:key="feature" android:value="@array/feature_receive" />
+        </capability-binding>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="transactions"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_transactions"
+        android:shortcutShortLabel="@string/shortcut_transactions_short"
+        android:shortcutLongLabel="@string/shortcut_transactions_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="io.traaitt.osx"
+            android:targetClass="io.traaitt.osx.MainActivity"
+            android:data="xtewallet://transactions" />
+        <capability-binding android:key="actions.intent.OPEN_APP_FEATURE">
+            <parameter-binding android:key="feature" android:value="@array/feature_transactions" />
+        </capability-binding>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="addressbook"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_addressbook"
+        android:shortcutShortLabel="@string/shortcut_addressbook_short"
+        android:shortcutLongLabel="@string/shortcut_addressbook_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="io.traaitt.osx"
+            android:targetClass="io.traaitt.osx.MainActivity"
+            android:data="xtewallet://addressbook" />
+        <capability-binding android:key="actions.intent.OPEN_APP_FEATURE">
+            <parameter-binding android:key="feature" android:value="@array/feature_addressbook" />
+        </capability-binding>
+    </shortcut>
+
+</shortcuts>

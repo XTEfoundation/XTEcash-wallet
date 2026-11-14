@@ -21,6 +21,8 @@ import { createBottomTabNavigator } from 'react-navigation-tabs';
 import Config from './Config';
 
 import { Themes } from './Themes';
+
+import { initPlatform, applyDynamicColor } from './Platform';
 import { Globals } from './Globals';
 import { MainScreen } from './MainScreen';
 import { SplashScreen } from './SplashScreen';
@@ -354,9 +356,12 @@ export default class App extends React.Component {
             Globals.preferences = prefs;
         }
 
+        /* Widgets/shortcut prefs and Material You colours (Android 12+) */
+        await initPlatform();
+
         this.setState({
             screenProps: {
-                theme: Themes[Globals.preferences.theme],
+                theme: applyDynamicColor(Themes[Globals.preferences.theme]),
             },
             loaded: true,
         });
@@ -364,7 +369,7 @@ export default class App extends React.Component {
         Globals.updateTheme = () => {
             this.setState({
                 screenProps: {
-                    theme: Themes[Globals.preferences.theme],
+                    theme: applyDynamicColor(Themes[Globals.preferences.theme]),
                 }
             });
         };

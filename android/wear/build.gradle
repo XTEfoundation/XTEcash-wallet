@@ -1,0 +1,76 @@
+
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+def releaseSigningValue = { String envName, String gradleName, String fileName ->
+    def fromEnv = System.getenv(envName)
+    if (fromEnv?.trim()) {
+        return fromEnv.trim()
+    }
+    if (project.hasProperty(gradleName)) {
+        def fromGradle = project.property(gradleName)?.toString()?.trim()
+        if (fromGradle) {
+            return fromGradle
+        }
+    }
+    def fromFile = keystoreProperties.getProperty(fileName)?.trim()
+    if (fromFile) {
+        return fromFile
+    }
+    return null
+}
+
+// Env vars, -P gradle properties, or android/keystore.properties (gitignored).
+def releaseStoreFile = releaseSigningValue("XTE_UPLOAD_STORE_FILE", "MYAPP_UPLOAD_STORE_FILE", "storeFile")
+def releaseStorePassword = releaseSigningValue("XTE_UPLOAD_STORE_PASSWORD", "MYAPP_UPLOAD_STORE_PASSWORD", "storePassword")
+def releaseKeyAlias = releaseSigningValue("XTE_UPLOAD_KEY_ALIAS", "MYAPP_UPLOAD_KEY_ALIAS", "keyAlias")
+def releaseKeyPassword = releaseSigningValue("XTE_UPLOAD_KEY_PASSWORD", "MYAPP_UPLOAD_KEY_PASSWORD", "keyPassword")
+def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
+apply plugin: "com.android.application"
+
+// Wear OS companion: balance and receive QR from the phone over the Wear Data Layer.
+// Same applicationId and signing key as the phone app (required by the Data Layer).
+android {
+    namespace "io.traaitt.osx.wear"
+    compileSdkVersion rootProject.ext.compileSdkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+        applicationId rootProject.ext.has("walletApplicationId") ? rootProject.ext.walletApplicationId : "io.traaitt.osx"
+        minSdkVersion 26
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+    }
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation 'com.google.android.gms:play-services-wearable:18.0.0'
+    implementation 'com.google.zxing:core:3.4.1'
+}

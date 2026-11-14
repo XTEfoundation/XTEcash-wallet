@@ -37,6 +37,9 @@ import { Authenticate } from './Authenticate';
 import { SeedComponent, CopyButton } from './SharedComponents';
 import { savePreferencesToDatabase, setHaveWallet } from './Database';
 import { DEFAULT_BACKGROUND_PREFS, loadBackgroundPrefs, setBackgroundPref, initBackgroundSync } from './BackgroundSync';
+import {
+    DEFAULT_PLATFORM_PREFS, setPlatformPref, dynamicColorAvailable, openLanguageSettings, requestPinWidget,
+} from './Platform';
 
 import {
     navigateWithDisabledBack, toastPopUp, getArrivalTime,
@@ -716,11 +719,19 @@ export class SettingsScreen extends React.Component {
             authConfirmation: Globals.preferences.authConfirmation,
             autoOptimize: Globals.preferences.autoOptimize,
             backgroundPrefs: Globals.backgroundPrefs || DEFAULT_BACKGROUND_PREFS,
+            platformPrefs: Globals.platformPrefs || DEFAULT_PLATFORM_PREFS,
         }
     }
 
     componentDidMount() {
         loadBackgroundPrefs().then((backgroundPrefs) => this.setState({ backgroundPrefs }));
+    }
+
+    async togglePlatformPref(name, message) {
+        const value = !this.state.platformPrefs[name];
+        const platformPrefs = await setPlatformPref(name, value);
+        this.setState({ platformPrefs });
+        toastPopUp(`${message} ${value ? 'enabled' : 'disabled'}`);
     }
 
     async toggleBackgroundPref(name, message) {
@@ -1015,6 +1026,68 @@ export class SettingsScreen extends React.Component {
                                 checkbox: true,
                                 checked: this.state.backgroundPrefs.restoreService,
                             }] : []),
+                            ...(Platform.OS === 'android' ? [
+                                {
+                                    title: 'Protect Address Book',
+                                    description: 'Fingerprint, face or screen lock to open the address book',
+                                    icon: { iconName: 'contacts', IconType: MaterialCommunityIcons },
+                                    onClick: () => this.togglePlatformPref('protectAddressBook', 'Address book protection'),
+                                    checkbox: true,
+                                    checked: this.state.platformPrefs.protectAddressBook,
+                                },
+                                {
+                                    title: 'Biometric Send Confirmation',
+                                    description: 'Fingerprint, face or screen lock before a transaction is sent',
+                                    icon: { iconName: 'fingerprint', IconType: MaterialCommunityIcons },
+                                    onClick: () => this.togglePlatformPref('biometricSend', 'Biometric send confirmation'),
+                                    checkbox: true,
+                                    checked: this.state.platformPrefs.biometricSend,
+                                },
+                                {
+                                    title: 'Hide Balance In Widgets',
+                                    description: 'Widgets, Quick Settings tile and watch show no amounts',
+                                    icon: { iconName: 'eye-off', IconType: MaterialCommunityIcons },
+                                    onClick: () => this.togglePlatformPref('hideBalanceInWidgets', 'Hidden widget balance'),
+                                    checkbox: true,
+                                    checked: this.state.platformPrefs.hideBalanceInWidgets,
+                                },
+                                {
+                                    title: 'Add Balance Widget',
+                                    description: 'Place the balance widget on your home screen',
+                                    icon: { iconName: 'widgets', IconType: MaterialCommunityIcons },
+                                    onClick: async () => {
+                                        const ok = await requestPinWidget('balance');
+                                        if (!ok) {
+                                            toastPopUp('Long-press the home screen and choose Widgets to add it');
+                                        }
+                                    },
+                                },
+                                {
+                                    title: 'Add Receive QR Widget',
+                                    description: 'Place your receive QR code on your home screen',
+                                    icon: { iconName: 'qrcode', IconType: MaterialCommunityIcons },
+                                    onClick: async () => {
+                                        const ok = await requestPinWidget('receive');
+                                        if (!ok) {
+                                            toastPopUp('Long-press the home screen and choose Widgets to add it');
+                                        }
+                                    },
+                                },
+                                ...(dynamicColorAvailable() ? [{
+                                    title: 'Material You Colours',
+                                    description: 'Use your wallpaper colours (Android 12+)',
+                                    icon: { iconName: 'palette', IconType: MaterialCommunityIcons },
+                                    onClick: () => this.togglePlatformPref('dynamicColor', 'Material You colours'),
+                                    checkbox: true,
+                                    checked: this.state.platformPrefs.dynamicColor,
+                                }] : []),
+                                {
+                                    title: 'App Language',
+                                    description: 'Choose the language for this app (Android 13+)',
+                                    icon: { iconName: 'translate', IconType: MaterialCommunityIcons },
+                                    onClick: () => openLanguageSettings(),
+                                },
+                            ] : []),
                             {
                                 title: 'Scan Coinbase Transactions',
                                 description: 'Enable this if you have solo mined',
@@ -1182,6 +1255,7 @@ function deleteWallet(navigation) {
                     clearInterval(Globals.backgroundSaveTimer);
 
                     await setHaveWallet(false);
+                    require('./Platform').clearWidgetData();
 
                     Globals.wallet.stop();
 
