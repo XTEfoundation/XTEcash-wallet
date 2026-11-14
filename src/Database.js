@@ -15,6 +15,8 @@ import { Globals } from './Globals';
 
 import { reportCaughtException } from './Sentry';
 
+import { sealWalletData, unsealWalletData, loadSecurityPrefs } from './Security';
+
 /* Use promise based API instead of callback based */
 SQLite.enablePromise(true);
 
@@ -68,7 +70,23 @@ async function saveWallet(wallet) {
     });
 }
 
+/* Reads the stored wallet and opens the hardware vault if it is sealed. */
 export async function loadWallet() {
+    const [data, err] = await loadWalletRaw();
+
+    if (err || data === undefined) {
+        return [data, err];
+    }
+
+    try {
+        return [await unsealWalletData(data), undefined];
+    } catch (unsealError) {
+        reportCaughtException(unsealError);
+        return [undefined, unsealError];
+    }
+}
+
+async function loadWalletRaw() {
     try {
         let [data] = await database.executeSql(
             `SELECT
@@ -287,6 +305,9 @@ async function createTables(DB) {
 
 export async function openDB() {
     try {
+        /* Needed before the first save: decides whether the wallet is sealed */
+        await loadSecurityPrefs();
+
         database = await SQLite.openDatabase({
             name: 'data.DB',
             location: 'default',
@@ -425,7 +446,7 @@ export async function loadPayeeDataFromDatabase() {
 
 export async function saveToDatabase(wallet) {
     try {
-        await saveWallet(wallet.toJSONString());
+        await saveWallet(await sealWalletData(wallet.toJSONString()));
         await setHaveWallet(true);
     } catch (err) {
         reportCaughtException(err);

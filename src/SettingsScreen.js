@@ -740,6 +740,17 @@ export class SettingsScreen extends React.Component {
                                 },
                             },
                             {
+                                title: 'Security & Backup',
+                                description: 'Hardware key, auto-lock, iCloud / Google backup, hardware wallet',
+                                icon: {
+                                    iconName: 'shield-lock',
+                                    IconType: MaterialCommunityIcons,
+                                },
+                                onClick: () => {
+                                    this.props.navigation.navigate('Security');
+                                },
+                            },
+                            {
                                 title: 'Backup Keys',
                                 description: 'Display your private keys/seed',
                                 icon: {

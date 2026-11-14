@@ -26,5 +26,8 @@ public class MainActivity extends ReactActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(null);
+
+        /* Screenshot / recents protection chosen in Settings > Security */
+        XTESecurityModule.applySecureScreen(this);
     }
 }

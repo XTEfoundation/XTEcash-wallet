@@ -29,6 +29,11 @@ import { loadPreferencesFromDatabase, openDB } from './Database';
 import { ModifyPayeeScreen, RecipientsScreen } from './Recipients';
 import { WalletOptionScreen, CreateWalletScreen } from './CreateScreen';
 import { TransactionsScreen, TransactionDetailsScreen } from './TransactionsScreen';
+import { SecurityScreen } from './SecurityScreen';
+import { RestoreBackupScreen } from './RestoreBackupScreen';
+import { HardwareWalletScreen } from './HardwareWalletScreen';
+import { SwapScreen } from './SwapScreen';
+import { LockOverlay } from './LockOverlay';
 
 import {
     SetPinScreen, RequestPinScreen, ForgotPinScreen, RequestHardwareAuthScreen,
@@ -134,6 +139,10 @@ const SettingsNavigator = createStackNavigator(
         SetPin: SetPinScreen,
         ChooseAuthMethod: ChooseAuthMethodScreen,
         RequestHardwareAuth: RequestHardwareAuthScreen,
+        Security: SecurityScreen,
+        HardwareWallet: HardwareWalletScreen,
+        Swap: SwapScreen,
+        QrScanner: QrScannerScreen,
     },
     {
         initialRouteName: 'Settings',
@@ -281,6 +290,17 @@ const LoginNavigator = createStackNavigator(
 
         /* Whether we should use pin, fingerprint, or no auth */
         ChooseAuthMethod: ChooseAuthMethodScreen,
+
+        /* Optional security, notifications and backups after create/restore */
+        SecuritySetup: SecurityScreen,
+
+        /* Restore from an encrypted backup (iCloud Keychain / Gmail / Drive) */
+        RestoreBackup: RestoreBackupScreen,
+
+        /* Ledger / offline QR signer (watch-only) */
+        HardwareWallet: HardwareWalletScreen,
+        QrScanner: QrScannerScreen,
+        Swap: SwapScreen,
     },
     {
         initialRouteName: 'Splash',
@@ -351,7 +371,12 @@ export default class App extends React.Component {
     }
 
     render() {
-        const loadedComponent = <AppContainer screenProps={this.state.screenProps}/>;
+        const loadedComponent = (
+            <View style={{ flex: 1 }}>
+                <AppContainer screenProps={this.state.screenProps}/>
+                <LockOverlay theme={this.state.screenProps.theme}/>
+            </View>
+        );
         const notLoadedComponent = <View></View>;
 
         return(

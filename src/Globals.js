@@ -92,6 +92,11 @@ class globals {
     }
 
     getDaemon() {
+        /* Move users off an old built-in default to the current one. */
+        if ((Config.legacyDefaultNodes || []).includes(this.preferences.node)) {
+            this.preferences.node = Config.defaultNode;
+        }
+
         const parsed = parseNode(this.preferences.node);
         const fallback = parseNode(Config.defaultNode);
         const node = parsed.host && Number.isFinite(parsed.port) ? parsed : fallback;

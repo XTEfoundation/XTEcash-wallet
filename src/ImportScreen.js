@@ -48,7 +48,7 @@ export class ImportWalletScreen extends React.Component {
                         When did you create your wallet?
                     </Text>
 
-                    <Text style={{ color: this.props.screenProps.theme.primaryColour, fontSize: 16, marginBottom: 60 }}>
+                    <Text style={{ color: this.props.screenProps.theme.primaryColour, fontSize: 16, marginBottom: 30 }}>
                         This helps us scan your wallet faster.
                     </Text>
                 </View>
@@ -58,6 +58,22 @@ export class ImportWalletScreen extends React.Component {
                     justifyContent: 'flex-start',
                     alignItems: 'center',
                 }}>
+                    <View style={[Styles.buttonContainer, {alignItems: 'stretch', width: '100%', marginTop: 5, marginBottom: 5}]}>
+                        <Button
+                            title="Restore encrypted backup (iCloud / Gmail / Drive)"
+                            onPress={() => this.props.navigation.navigate('RestoreBackup')}
+                            color={this.props.screenProps.theme.primaryColour}
+                        />
+                    </View>
+
+                    <View style={[Styles.buttonContainer, {alignItems: 'stretch', width: '100%', marginTop: 5, marginBottom: 25}]}>
+                        <Button
+                            title="Hardware wallet / watch-only"
+                            onPress={() => this.props.navigation.navigate('HardwareWallet')}
+                            color={this.props.screenProps.theme.primaryColour}
+                        />
+                    </View>
+
                     <View style={[Styles.buttonContainer, {alignItems: 'stretch', width: '100%', marginTop: 5, marginBottom: 5}]}>
                         <Button
                             title="Pick a month"
@@ -231,7 +247,7 @@ export class ImportSeedScreen extends React.Component {
 
         saveToDatabase(Globals.wallet);
 
-        this.props.navigation.navigate('Home');
+        this.props.navigation.navigate('SecuritySetup', { setup: true });
     }
 
     render() {
@@ -373,7 +389,7 @@ export class ImportKeysScreen extends React.Component {
 
         saveToDatabase(Globals.wallet);
 
-        this.props.navigation.navigate('Home');
+        this.props.navigation.navigate('SecuritySetup', { setup: true });
     }
 
     render() {

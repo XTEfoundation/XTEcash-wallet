@@ -84,4 +84,29 @@
   completionHandler();
 }
 
+/* Privacy cover for the app switcher snapshot (Settings > Security >
+   "Hide screen in app switcher"). The flag is set by NativeModules.XTESecurity. */
+static const NSInteger XTEPrivacyCoverTag = 0x7e7e;
+
+- (void)applicationWillResignActive:(UIApplication *)application
+{
+  if (![[NSUserDefaults standardUserDefaults] boolForKey:@"XTEScreenProtection"] || !self.window) {
+    return;
+  }
+  if ([self.window viewWithTag:XTEPrivacyCoverTag]) {
+    return;
+  }
+  UIVisualEffectView *cover = [[UIVisualEffectView alloc]
+      initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleDark]];
+  cover.frame = self.window.bounds;
+  cover.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+  cover.tag = XTEPrivacyCoverTag;
+  [self.window addSubview:cover];
+}
+
+- (void)applicationDidBecomeActive:(UIApplication *)application
+{
+  [[self.window viewWithTag:XTEPrivacyCoverTag] removeFromSuperview];
+}
+
 @end

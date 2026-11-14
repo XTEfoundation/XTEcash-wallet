@@ -516,3 +516,338 @@ RCT_EXPORT_METHOD(navigateToBatteryOptimizationScreen:(RCTPromiseResolveBlock)re
 }
 
 @end
+
+/* ------------------------------------------------------------------------ */
+/* NativeModules.XTESecurity: hardware vault (Secure Enclave), screen        */
+/* protection, jailbreak indicators, PBKDF2 and iCloud Keychain backups.     */
+/* Mirrors android/.../XTESecurityModule.java.                               */
+/* ------------------------------------------------------------------------ */
+
+#import <Security/Security.h>
+#import <CommonCrypto/CommonKeyDerivation.h>
+#import <UIKit/UIKit.h>
+
+@interface XTESecurityModule : NSObject <RCTBridgeModule>
+@end
+
+static NSString *const XTEVaultTag = @"io.traaitt.wallet.vault.v1";
+static NSString *const XTECloudService = @"io.traaitt.wallet.backup";
+NSString *const XTEScreenProtectionDefaultsKey = @"XTEScreenProtection";
+
+static SecKeyAlgorithm XTEVaultAlgorithm(void)
+{
+    return kSecKeyAlgorithmECIESEncryptionCofactorVariableIVX963SHA256AESGCM;
+}
+
+static SecKeyRef XTECopyVaultKey(NSString **level)
+{
+    NSData *tag = [XTEVaultTag dataUsingEncoding:NSUTF8StringEncoding];
+
+    NSDictionary *query = @{
+        (id)kSecClass: (id)kSecClassKey,
+        (id)kSecAttrApplicationTag: tag,
+        (id)kSecAttrKeyType: (id)kSecAttrKeyTypeECSECPrimeRandom,
+        (id)kSecReturnRef: @YES,
+        (id)kSecReturnAttributes: @NO,
+    };
+
+    CFTypeRef found = NULL;
+
+    if (SecItemCopyMatching((__bridge CFDictionaryRef)query, &found) == errSecSuccess && found)
+    {
+        if (level)
+        {
+            NSDictionary *attrsQuery = @{
+                (id)kSecClass: (id)kSecClassKey,
+                (id)kSecAttrApplicationTag: tag,
+                (id)kSecReturnAttributes: @YES,
+            };
+            CFTypeRef attrs = NULL;
+            *level = @"Keychain";
+            if (SecItemCopyMatching((__bridge CFDictionaryRef)attrsQuery, &attrs) == errSecSuccess && attrs)
+            {
+                NSDictionary *a = (__bridge_transfer NSDictionary *)attrs;
+                if ([a[(id)kSecAttrTokenID] isEqual:(id)kSecAttrTokenIDSecureEnclave])
+                {
+                    *level = @"Secure Enclave";
+                }
+            }
+        }
+        return (SecKeyRef)found;
+    }
+
+    /* Create it: Secure Enclave first, software keychain key as a fallback
+       (simulator, or devices without an enclave). */
+    for (int attempt = 0; attempt < 2; attempt++)
+    {
+        const BOOL enclave = attempt == 0;
+        CFErrorRef error = NULL;
+        SecAccessControlRef access = SecAccessControlCreateWithFlags(
+            kCFAllocatorDefault,
+            kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+            (SecAccessControlCreateFlags)(enclave ? kSecAccessControlPrivateKeyUsage : 0),
+            &error);
+
+        if (!access)
+        {
+            continue;
+        }
+
+        NSMutableDictionary *attributes = [@{
+            (id)kSecAttrKeyType: (id)kSecAttrKeyTypeECSECPrimeRandom,
+            (id)kSecAttrKeySizeInBits: @256,
+            (id)kSecPrivateKeyAttrs: @{
+                (id)kSecAttrIsPermanent: @YES,
+                (id)kSecAttrApplicationTag: tag,
+                (id)kSecAttrAccessControl: (__bridge id)access,
+            },
+        } mutableCopy];
+
+        if (enclave)
+        {
+            attributes[(id)kSecAttrTokenID] = (id)kSecAttrTokenIDSecureEnclave;
+        }
+
+        SecKeyRef key = SecKeyCreateRandomKey((__bridge CFDictionaryRef)attributes, &error);
+        CFRelease(access);
+
+        if (key)
+        {
+            if (level)
+            {
+                *level = enclave ? @"Secure Enclave" : @"Keychain";
+            }
+            return key;
+        }
+
+        if (error)
+        {
+            CFRelease(error);
+        }
+    }
+
+    return NULL;
+}
+
+__attribute__((unused)) static BOOL XTEPathExists(NSString *path)
+{
+    return [[NSFileManager defaultManager] fileExistsAtPath:path];
+}
+
+@implementation XTESecurityModule
+
+RCT_EXPORT_MODULE(XTESecurity)
+
++ (BOOL)requiresMainQueueSetup
+{
+    return NO;
+}
+
+RCT_EXPORT_METHOD(vaultInfo:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    NSString *level = nil;
+    SecKeyRef key = XTECopyVaultKey(&level);
+
+    if (!key)
+    {
+        reject(@"vault", @"Could not create the vault key", nil);
+        return;
+    }
+
+    CFRelease(key);
+    resolve(@{ @"level": level ?: @"Keychain", @"hasStrongBox": @NO });
+}
+
+RCT_EXPORT_METHOD(vaultEncrypt:(NSString *)plaintext
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        SecKeyRef key = XTECopyVaultKey(NULL);
+        if (!key) { reject(@"vault", @"Vault key unavailable", nil); return; }
+
+        SecKeyRef publicKey = SecKeyCopyPublicKey(key);
+        CFRelease(key);
+        if (!publicKey) { reject(@"vault", @"Vault public key unavailable", nil); return; }
+
+        CFErrorRef error = NULL;
+        NSData *data = [plaintext dataUsingEncoding:NSUTF8StringEncoding];
+        CFDataRef cipher = SecKeyCreateEncryptedData(publicKey, XTEVaultAlgorithm(), (__bridge CFDataRef)data, &error);
+        CFRelease(publicKey);
+
+        if (!cipher)
+        {
+            NSError *err = CFBridgingRelease(error);
+            reject(@"vault", err.localizedDescription ?: @"Encryption failed", err);
+            return;
+        }
+
+        resolve([(__bridge_transfer NSData *)cipher base64EncodedStringWithOptions:0]);
+    });
+}
+
+RCT_EXPORT_METHOD(vaultDecrypt:(NSString *)encoded
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        NSData *data = [[NSData alloc] initWithBase64EncodedString:encoded options:0];
+        if (!data) { reject(@"vault", @"Corrupt vault data", nil); return; }
+
+        SecKeyRef key = XTECopyVaultKey(NULL);
+        if (!key) { reject(@"vault", @"Vault key unavailable", nil); return; }
+
+        CFErrorRef error = NULL;
+        CFDataRef plain = SecKeyCreateDecryptedData(key, XTEVaultAlgorithm(), (__bridge CFDataRef)data, &error);
+        CFRelease(key);
+
+        if (!plain)
+        {
+            NSError *err = CFBridgingRelease(error);
+            reject(@"vault", err.localizedDescription ?: @"Decryption failed", err);
+            return;
+        }
+
+        resolve([[NSString alloc] initWithData:(__bridge_transfer NSData *)plain encoding:NSUTF8StringEncoding]);
+    });
+}
+
+RCT_EXPORT_METHOD(setScreenProtection:(BOOL)enabled
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:XTEScreenProtectionDefaultsKey];
+    resolve(@(enabled));
+}
+
+RCT_EXPORT_METHOD(compromisedIndicators:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    NSMutableArray *reasons = [NSMutableArray array];
+#if !TARGET_OS_SIMULATOR
+    NSArray *paths = @[
+        @"/Applications/Cydia.app", @"/Applications/Sileo.app", @"/Applications/Zebra.app",
+        @"/Library/MobileSubstrate/MobileSubstrate.dylib", @"/usr/sbin/sshd", @"/bin/bash",
+        @"/etc/apt", @"/private/var/lib/apt/", @"/var/jb", @"/var/binpack",
+        @"/usr/lib/libsubstitute.dylib", @"/usr/lib/TweakInject",
+    ];
+
+    for (NSString *path in paths)
+    {
+        if (XTEPathExists(path))
+        {
+            [reasons addObject:[NSString stringWithFormat:@"Found %@", path]];
+        }
+    }
+
+    NSString *probe = @"/private/xte-jailbreak-probe.txt";
+    if ([@"x" writeToFile:probe atomically:YES encoding:NSUTF8StringEncoding error:nil])
+    {
+        [[NSFileManager defaultManager] removeItemAtPath:probe error:nil];
+        [reasons addObject:@"App can write outside its sandbox"];
+    }
+#endif
+    resolve(reasons);
+}
+
+RCT_EXPORT_METHOD(pbkdf2Sha256:(NSString *)password
+                  salt:(NSString *)saltBase64
+                  iterations:(double)iterations
+                  keyBytes:(double)keyBytes
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        NSData *salt = [[NSData alloc] initWithBase64EncodedString:saltBase64 options:0];
+        NSData *pass = [password dataUsingEncoding:NSUTF8StringEncoding];
+        NSMutableData *out = [NSMutableData dataWithLength:(NSUInteger)keyBytes];
+
+        int rc = CCKeyDerivationPBKDF(kCCPBKDF2, (const char *)pass.bytes, pass.length,
+                                      (const uint8_t *)salt.bytes, salt.length,
+                                      kCCPRFHmacAlgSHA256, (unsigned int)iterations,
+                                      (uint8_t *)out.mutableBytes, out.length);
+        if (rc != kCCSuccess) { reject(@"pbkdf2", @"Key derivation failed", nil); return; }
+        resolve([out base64EncodedStringWithOptions:0]);
+    });
+}
+
+RCT_EXPORT_METHOD(cloudKeychainAvailable:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    resolve(@YES);
+}
+
+/* Stores an (already password-encrypted) backup as a synchronizable Keychain
+   item, which iCloud Keychain end-to-end encrypts and syncs to the user's
+   other devices. No iCloud container or extra entitlement is needed. */
+RCT_EXPORT_METHOD(cloudKeychainSet:(NSString *)account
+                  value:(NSString *)value
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    NSDictionary *match = @{
+        (id)kSecClass: (id)kSecClassGenericPassword,
+        (id)kSecAttrService: XTECloudService,
+        (id)kSecAttrAccount: account,
+        (id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny,
+    };
+    SecItemDelete((__bridge CFDictionaryRef)match);
+
+    NSDictionary *item = @{
+        (id)kSecClass: (id)kSecClassGenericPassword,
+        (id)kSecAttrService: XTECloudService,
+        (id)kSecAttrAccount: account,
+        (id)kSecAttrSynchronizable: @YES,
+        (id)kSecAttrAccessible: (id)kSecAttrAccessibleAfterFirstUnlock,
+        (id)kSecValueData: [value dataUsingEncoding:NSUTF8StringEncoding],
+    };
+    OSStatus status = SecItemAdd((__bridge CFDictionaryRef)item, NULL);
+
+    if (status != errSecSuccess)
+    {
+        reject(@"icloud", [NSString stringWithFormat:@"Keychain error %d", (int)status], nil);
+        return;
+    }
+    resolve(@YES);
+}
+
+RCT_EXPORT_METHOD(cloudKeychainGet:(NSString *)account
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    NSDictionary *query = @{
+        (id)kSecClass: (id)kSecClassGenericPassword,
+        (id)kSecAttrService: XTECloudService,
+        (id)kSecAttrAccount: account,
+        (id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny,
+        (id)kSecReturnData: @YES,
+        (id)kSecMatchLimit: (id)kSecMatchLimitOne,
+    };
+    CFTypeRef data = NULL;
+    OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)query, &data);
+
+    if (status == errSecItemNotFound) { resolve([NSNull null]); return; }
+    if (status != errSecSuccess || !data)
+    {
+        reject(@"icloud", [NSString stringWithFormat:@"Keychain error %d", (int)status], nil);
+        return;
+    }
+    resolve([[NSString alloc] initWithData:(__bridge_transfer NSData *)data encoding:NSUTF8StringEncoding]);
+}
+
+RCT_EXPORT_METHOD(cloudKeychainDelete:(NSString *)account
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    NSDictionary *match = @{
+        (id)kSecClass: (id)kSecClassGenericPassword,
+        (id)kSecAttrService: XTECloudService,
+        (id)kSecAttrAccount: account,
+        (id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny,
+    };
+    SecItemDelete((__bridge CFDictionaryRef)match);
+    resolve(@YES);
+}
+
+@end

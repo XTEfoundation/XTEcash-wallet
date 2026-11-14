@@ -292,6 +292,9 @@ public class XTEModule extends ReactContextBaseJavaModule {
             /* 10 second timeout */
             connection.setConnectTimeout(10000);
 
+            /* Do not wait forever for a slow node */
+            connection.setReadTimeout(60000);
+
             /* We're sending a JSON post */
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
